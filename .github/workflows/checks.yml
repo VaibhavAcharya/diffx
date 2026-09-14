@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        node: [20, 24]
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -26,3 +26,27 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm format:check
+
+  # pnpm needs a newer Node than the published CLI does, so build with a current
+  # Node and then run the suite on the oldest one package.json claims to support.
+  runtime-floor:
+    name: node 20.19 · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.19"
+      - run: node --version
+      - run: node --test server/db.test.mjs server/git.test.mjs server/http.test.mjs
