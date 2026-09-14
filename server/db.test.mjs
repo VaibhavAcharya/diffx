@@ -14,7 +14,7 @@ test.after(() => rm(home, { recursive: true, force: true }));
 
 test("returns a blank database with default settings", async () => {
   assert.deepEqual(await db.read(), {
-    version: 2,
+    version: 3,
     revision: 0,
     settings: db.defaults,
     activeTab: null,
@@ -92,12 +92,13 @@ test("discards repository settings that only repeat the defaults", () => {
 
 test("clamps numeric settings and ignores unusable values", () => {
   const { settings } = db.sanitize({
-    version: 2,
+    version: 3,
     settings: {
       theme: "sepia",
       expansionLines: 5000,
       scanDepth: 0,
       density: "relaxed",
+      sidebarWidth: 900,
       ignore: ["target", "a/b", "", 7, "target"],
     },
   });
@@ -105,7 +106,50 @@ test("clamps numeric settings and ignores unusable values", () => {
   assert.equal(settings.expansionLines, 200);
   assert.equal(settings.scanDepth, 1);
   assert.equal(settings.density, "relaxed");
+  assert.equal(settings.sidebarWidth, 640);
   assert.deepEqual(settings.ignore, ["target"]);
+});
+
+test("migrates additive exclusions without changing tab selection", () => {
+  const state = db.sanitize({
+    version: 2,
+    settings: { ignore: ["target", "node_modules"] },
+    tabs: [{ id: "a", root: "/tmp/a", selection: "all" }],
+  });
+  assert.equal(state.version, 3);
+  assert.deepEqual(state.settings.ignore, [...db.defaults.ignore, "target"]);
+  assert.equal(state.tabs[0].selection, "all");
+  const custom = Array.from({ length: 100 }, (_, index) => `cache-${index}`);
+  assert.deepEqual(
+    db.sanitize({ version: 2, settings: { ignore: custom } }).settings.ignore,
+    [...db.defaults.ignore, ...custom],
+  );
+});
+
+test("persists removing every default exclusion and resizing the sidebar", async () => {
+  await db.write({ ...empty, settings: { ignore: [], sidebarWidth: 420 } });
+  const state = await db.read();
+  assert.deepEqual(state.settings.ignore, []);
+  assert.equal(state.settings.sidebarWidth, 420);
+  assert.deepEqual(JSON.parse(await readFile(file, "utf8")).settings, {
+    sidebarWidth: 420,
+    ignore: [],
+  });
+});
+
+test("reset restores preferences and preserves open and recently closed tabs", () => {
+  let state = db.apply(empty, { op: "open", root: "/tmp/a" });
+  state = db.apply(state, { op: "open", root: "/tmp/b" });
+  state = db.apply(state, { op: "close", id: state.activeTab });
+  state = db.apply(state, {
+    op: "settings",
+    settings: { ignore: [], theme: "dark", sidebarWidth: 500 },
+  });
+  const reset = db.apply(state, { op: "reset-settings" });
+  assert.deepEqual(reset.settings, db.defaults);
+  assert.deepEqual(reset.tabs, state.tabs);
+  assert.deepEqual(reset.recent, state.recent);
+  assert.equal(reset.activeTab, state.activeTab);
 });
 
 test("moves a corrupt database aside and starts clean", async () => {

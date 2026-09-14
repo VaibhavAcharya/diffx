@@ -12,8 +12,10 @@ import {
   MinusIcon,
   PlusIcon,
   SlidersHorizontalIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import type { Settings } from "./store";
+import { version } from "../package.json";
 
 function Row({
   label,
@@ -102,11 +104,13 @@ function Count({
 export function SettingsDialog({
   settings,
   onChange,
+  onReset,
 }: {
   settings: Settings;
   onChange: (patch: Partial<Settings>) => void;
+  onReset: () => void;
 }) {
-  const [ignore, setIgnore] = useState(settings.ignore.join(", "));
+  const [folder, setFolder] = useState("");
   return (
     <Dialog.Root>
       <Dialog.Trigger
@@ -236,32 +240,80 @@ export function SettingsDialog({
                 onChange={(scanBudget) => onChange({ scanBudget })}
               />
             </Row>
-            <Row
-              label="Skip these folders"
-              hint="Added to the built-in list of dependency and cache folders"
-            >
-              <Input
-                className="input"
-                aria-label="Skip these folders"
-                placeholder="target, Build"
-                value={ignore}
-                onValueChange={setIgnore}
-                onBlur={() =>
-                  onChange({
-                    ignore: ignore
-                      .split(",")
-                      .map((name) => name.trim())
-                      .filter(Boolean),
-                  })
-                }
-              />
-            </Row>
+            <div className="skip-folders">
+              <label htmlFor="skip-folder">Skip these folders</label>
+              <p className="popup-note">
+                Remove a name to include that folder in discovery.
+              </p>
+              <div className="folder-chips" aria-label="Skipped folders">
+                {settings.ignore.map((name) => (
+                  <Button
+                    key={name}
+                    className="folder-chip"
+                    aria-label={`Include ${name} in discovery`}
+                    onClick={() =>
+                      onChange({
+                        ignore: settings.ignore.filter(
+                          (value) => value !== name,
+                        ),
+                      })
+                    }
+                  >
+                    {name}
+                    <XIcon />
+                  </Button>
+                ))}
+                {!settings.ignore.length && (
+                  <span className="muted">No folder names are skipped.</span>
+                )}
+              </div>
+              <form
+                className="folder-add"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const name = folder.trim();
+                  if (name && !settings.ignore.includes(name))
+                    onChange({ ignore: [...settings.ignore, name] });
+                  setFolder("");
+                }}
+              >
+                <Input
+                  id="skip-folder"
+                  className="input"
+                  placeholder="Folder name, e.g. target"
+                  value={folder}
+                  onValueChange={setFolder}
+                  maxLength={63}
+                  pattern={String.raw`[^/\\]+`}
+                  title="Enter a folder name without path separators."
+                />
+                <Button
+                  type="submit"
+                  className="text-button"
+                  disabled={!folder.trim() || settings.ignore.length >= 200}
+                >
+                  Add
+                </Button>
+              </form>
+            </div>
           </Fieldset.Root>
           <p className="popup-note">
             Discovery never walks inside a repository, so .gitignore never
             applies. Changes here take effect on the next rescan.
           </p>
           <div className="settings-actions">
+            <Button
+              className="text-button"
+              onClick={() => {
+                setFolder("");
+                onReset();
+              }}
+              title="Restore all app preferences. Tabs and comparisons are kept."
+            >
+              Reset preferences
+            </Button>
+            <div className="push" />
+            <span className="muted">polydiff v{version}</span>
             <Dialog.Close className="primary-button">Done</Dialog.Close>
           </div>
         </Dialog.Popup>

@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import { defaultIgnored } from "./git.mjs";
 
 const directory =
   process.env.POLYDIFF_HOME || path.join(os.homedir(), ".polydiff");
@@ -14,9 +15,10 @@ export const defaults = {
   wordDiff: "word-alt",
   expansionLines: 20,
   density: "compact",
+  sidebarWidth: 304,
   scanDepth: 8,
   scanBudget: 10000,
-  ignore: [],
+  ignore: defaultIgnored,
 };
 const choices = {
   theme: ["system", "light", "dark"],
@@ -25,6 +27,7 @@ const choices = {
   density: ["compact", "default", "relaxed"],
 };
 const ranges = {
+  sidebarWidth: [220, 640],
   expansionLines: [5, 200],
   scanDepth: [1, 16],
   scanBudget: [100, 200000],
@@ -33,7 +36,7 @@ const selections = ["changed", "all", "none", "custom"];
 
 function blank() {
   return {
-    version: 2,
+    version: 3,
     revision: 0,
     settings: { ...defaults },
     activeTab: null,
@@ -63,7 +66,7 @@ function cleanSettings(value) {
             !/[/\\]/.test(name),
         ),
       ),
-    ].slice(0, 100);
+    ].slice(0, 200);
   return settings;
 }
 function cleanRepos(value) {
@@ -113,7 +116,7 @@ function cleanTab(value, seen, migrating) {
 }
 export function sanitize(value) {
   if (!value || typeof value !== "object") return blank();
-  const migrating = value.version !== 2;
+  const migrating = value.version === 1;
   const seen = new Set();
   const list = (input) =>
     (Array.isArray(input) ? input : [])
@@ -126,9 +129,21 @@ export function sanitize(value) {
       ? value.revision
       : 0;
   return {
-    version: 2,
+    version: 3,
     revision,
-    settings: cleanSettings(value.settings),
+    settings: cleanSettings(
+      value.version === 1 || value.version === 2
+        ? {
+            ...value.settings,
+            ignore: [
+              ...defaultIgnored,
+              ...(Array.isArray(value.settings?.ignore)
+                ? value.settings.ignore
+                : []),
+            ],
+          }
+        : value.settings,
+    ),
     activeTab: tabs.some((tab) => tab.id === value.activeTab)
       ? value.activeTab
       : (tabs[0]?.id ?? null),
@@ -153,6 +168,8 @@ function insert(state, tab, index) {
 }
 export function apply(state, command) {
   const op = command && typeof command === "object" ? command.op : null;
+  if (op === "reset-settings")
+    return { ...state, settings: cleanSettings(null) };
   if (op === "settings")
     return {
       ...state,

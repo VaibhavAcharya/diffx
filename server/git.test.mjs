@@ -3,8 +3,29 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { git, scan, diff, fileContents } from "./git.mjs";
+import { git, scan, diff, fileContents, defaultIgnored } from "./git.mjs";
 import { parsePatchFiles } from "@pierre/diffs";
+
+test("allows removing default folder exclusions", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "polydiff-ignore-"));
+  try {
+    const repo = path.join(root, "node_modules", "repo");
+    await mkdir(repo, { recursive: true });
+    await git(repo, ["init", "-b", "main"]);
+    assert.equal((await scan(root)).repos.length, 0);
+    assert.equal(
+      (
+        await scan(root, {
+          ignore: defaultIgnored.filter((name) => name !== "node_modules"),
+        })
+      ).repos.length,
+      1,
+    );
+    assert.equal((await scan(root, { ignore: [] })).repos.length, 1);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 
 test("discovers cross-repo worktrees and compares feature changes without changing Git state", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "polydiff-test-"));

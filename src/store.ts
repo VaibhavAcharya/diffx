@@ -8,6 +8,7 @@ export type Settings = {
   wordDiff: "word-alt" | "word" | "char" | "none";
   expansionLines: number;
   density: "compact" | "default" | "relaxed";
+  sidebarWidth: number;
   scanDepth: number;
   scanBudget: number;
   ignore: string[];
@@ -37,6 +38,7 @@ type State = {
   recent: Tab[];
 };
 type Command =
+  | { op: "reset-settings" }
   | { op: "settings"; settings: Partial<Settings> }
   | { op: "open"; root: string }
   | { op: "duplicate"; id: string }
@@ -224,5 +226,6 @@ export function useStore() {
     reopen,
     saveTab,
     setSettings,
+    resetSettings: () => void send({ op: "reset-settings" }).catch(() => {}),
   };
 }

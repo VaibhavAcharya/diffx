@@ -10,7 +10,11 @@ Closing a tab keeps it in a list of the ten most recently closed. The restore bu
 
 ## Settings and stored state
 
-Settings apply everywhere and cover appearance (theme, unified or split, line wrapping, sidebar density), diffs (within-line highlighting, context lines per expansion), and discovery (search depth, directory budget, extra folder names to skip). Discovery settings take effect on the next rescan. Each tab separately remembers its directory, its selection mode, and any repository whose base branch, comparison branch, or individual tick you changed.
+Settings apply everywhere and cover appearance (theme, unified or split, line wrapping, sidebar density and width), diffs (within-line highlighting, context lines per expansion), and discovery (search depth, directory budget, and folder names to skip). Discovery settings take effect on the next rescan. Each tab separately remembers its directory, its selection mode, and any repository whose base branch, comparison branch, or individual tick you changed.
+
+Skip these folders shows the full default list. Remove a name to include that folder in discovery, or add a folder name to skip it. Reset preferences restores all app defaults, including this list and the sidebar width, while keeping open tabs, recently closed tabs, and repository comparisons.
+
+Drag the sidebar's right edge to resize it. You can also focus the divider and use Left/Right to adjust its width, or Home/End for the minimum/maximum. The width is saved across sessions. Long file and directory names scroll horizontally within each repository tree.
 
 Search text, which files are collapsed, and scroll position are deliberately not stored, because restoring them is more surprising than retyping them.
 
@@ -18,7 +22,7 @@ State lives in `~/.polydiff/db.json`, written atomically and debounced; set `POL
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "revision": 48,
   "settings": { "layout": "split" },
   "activeTab": "tmu0as73o",
@@ -46,7 +50,7 @@ The base defaults to origin's default branch when available, then main/master, t
 
 Discovery handles `.git` directories and worktree `.git` files, searches eight directory levels and 10,000 directories by default, and does not follow directory symlinks. Inside repositories it also checks `.worktrees`.
 
-Discovery stops at each repository boundary and never walks a repository's contents, so it only traverses the space between repositories. No `.gitignore` applies there, and none is read; a built-in list of dependency, virtualenv, and cache directory names is skipped instead, and Settings can add more. Build output names such as `build`, `dist`, and `target` are deliberately not on the built-in list, because they are also ordinary repository names. Reaching either search limit reports one summary warning rather than one per directory, naming the setting that raises it.
+Discovery stops at each repository boundary and never walks a repository's contents, so it only traverses the space between repositories. No `.gitignore` applies there, and none is read; dependency, virtualenv, and cache directory names are skipped by default, and Settings can add or remove names. Build output names such as `build`, `dist`, and `target` are deliberately not on the default list, because they are also ordinary repository names. Reaching either search limit reports one summary warning rather than one per directory, naming the setting that raises it.
 
 Binary files and changes without text hunks show a notice. Untracked files larger than 1 MB and untracked symlinks are skipped with a warning; Git output is limited to 16 MB per command. Repositories without commits currently report a comparison error.
 
