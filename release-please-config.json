@@ -3,7 +3,7 @@
   "packages": {
     ".": {
       "release-type": "node",
-      "package-name": "repodiffx",
+      "package-name": "polydiff",
       "changelog-path": "CHANGELOG.md",
       "initial-version": "0.1.0",
       "include-component-in-tag": false,
