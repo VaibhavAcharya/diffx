@@ -1,6 +1,6 @@
 {
   "name": "polydiff",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Browse uncommitted and unmerged changes across every Git repository and worktree in a directory, in your browser.",
   "license": "MIT",
   "author": "Vaibhav Acharya",
