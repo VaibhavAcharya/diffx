@@ -1,18 +1,19 @@
 {
   "name": "polydiff",
   "version": "0.1.1",
-  "description": "Browse uncommitted and unmerged changes across every Git repository and worktree in a directory, in your browser.",
+  "description": "Review changes across repos and worktrees in one local workspace.",
   "license": "MIT",
   "author": "Vaibhav Acharya",
   "keywords": [
     "git",
     "diff",
     "worktree",
-    "monorepo",
     "multi-repo",
     "code-review",
     "cli",
-    "local"
+    "local",
+    "developer-tools",
+    "git-diff"
   ],
   "repository": {
     "type": "git",
