@@ -152,7 +152,7 @@ function WorkspaceView({
   );
   const workspace = useWorkspace(tab, save);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(new Set<string>());
+  const [expanded, setExpanded] = useState(new Set<string>());
   const { selected } = workspace;
   const files = selected.flatMap((entry) => entry.data?.files || []);
   const total = stats(files);
@@ -161,17 +161,13 @@ function WorkspaceView({
   const allCollapsed =
     files.length > 0 &&
     selected.every((entry) =>
-      entry.data?.files.every((file) =>
-        collapsed.has(fileId(entry.repo.path, file.name)),
+      entry.data?.files.every(
+        (file) => !expanded.has(fileId(entry.repo.path, file.name)),
       ),
     );
   function navigate(repo: string, file?: string) {
     const id = fileId(repo, file);
-    setCollapsed((previous) => {
-      const next = new Set(previous);
-      next.delete(id);
-      return next;
-    });
+    setExpanded((previous) => new Set(previous).add(id));
     setSidebarOpen(false);
     requestAnimationFrame(() =>
       requestAnimationFrame(() =>
@@ -180,17 +176,17 @@ function WorkspaceView({
     );
   }
   function foldAll() {
-    setCollapsed(
+    setExpanded(
       allCollapsed
-        ? new Set()
-        : new Set(
+        ? new Set(
             selected.flatMap(
               (entry) =>
                 entry.data?.files.map((file) =>
                   fileId(entry.repo.path, file.name),
                 ) || [],
             ),
-          ),
+          )
+        : new Set(),
     );
   }
   return (
@@ -321,12 +317,12 @@ function WorkspaceView({
                 }
                 title={
                   workspace.entries.length
-                    ? "Nothing selected"
+                    ? "Nothing in this review"
                     : "No repositories here"
                 }
               >
                 {workspace.entries.length
-                  ? "Repositories without changes start deselected. Open the Repositories control to include more, or change what they compare against."
+                  ? "Changed follows the repositories that have changes. Tick one in the sidebar to add it whatever the rule says, or change what it compares against."
                   : "This folder has no Git repositories or worktrees inside it."}
               </Empty>
             ))}
@@ -386,15 +382,15 @@ function WorkspaceView({
                         entry={entry}
                         file={file}
                         settings={settings}
-                        collapsed={collapsed.has(
-                          fileId(entry.repo.path, file.name),
-                        )}
+                        collapsed={
+                          !expanded.has(fileId(entry.repo.path, file.name))
+                        }
                         onCollapse={(value) =>
-                          setCollapsed((previous) => {
+                          setExpanded((previous) => {
                             const next = new Set(previous);
                             const id = fileId(entry.repo.path, file.name);
-                            if (value) next.add(id);
-                            else next.delete(id);
+                            if (value) next.delete(id);
+                            else next.add(id);
                             return next;
                           })
                         }

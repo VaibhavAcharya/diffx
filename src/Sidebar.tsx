@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@base-ui/react/button";
+import { Checkbox } from "@base-ui/react/checkbox";
 import { Collapsible } from "@base-ui/react/collapsible";
 import { Input } from "@base-ui/react/input";
+import { Popover } from "@base-ui/react/popover";
 import {
   FileTree,
   useFileTree,
@@ -13,20 +15,113 @@ import {
   type FileTreeDensityKeyword,
 } from "@pierre/trees";
 import {
+  ArrowRightIcon,
   ArrowsClockwiseIcon,
+  CaretDownIcon,
   CaretRightIcon,
+  CheckIcon,
+  GitBranchIcon,
   MagnifyingGlassIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
+import { flattenEmptyDirectories } from "./order";
 import { RepoSelector } from "./RepoSelector";
-import { IconButton } from "./ui";
-import { stats, type Entry, type useWorkspace } from "./workspace";
+import { BranchPicker, IconButton, type BranchGroup } from "./ui";
+import {
+  comparisonLabel,
+  stats,
+  type Entry,
+  type useWorkspace,
+} from "./workspace";
 
 type WorkspaceState = ReturnType<typeof useWorkspace>;
 type Navigate = (repo: string, file?: string) => void;
 // The tallest a single repository's tree grows before it scrolls on its own.
 const maxVisibleTreeRows = 20;
 
+function branchGroups(entry: Entry, working: boolean): BranchGroup[] {
+  const { local, remote } = entry.repo.branches;
+  return [
+    {
+      value: "Current",
+      items: [
+        ...(working
+          ? [
+              {
+                value: "@working",
+                label: `working tree (${entry.repo.branch})`,
+              },
+            ]
+          : []),
+        { value: "HEAD", label: working ? "HEAD (committed only)" : "HEAD" },
+      ],
+    },
+    { value: "Local", items: local.map((value) => ({ value, label: value })) },
+    {
+      value: "Remote",
+      items: remote.map((value) => ({ value, label: value })),
+    },
+  ];
+}
+function Comparison({
+  entry,
+  workspace,
+}: {
+  entry: Entry;
+  workspace: WorkspaceState;
+}) {
+  return (
+    <Popover.Root>
+      <Popover.Trigger
+        className="compare-chip"
+        aria-label={`Comparison for ${entry.repo.name}`}
+      >
+        <GitBranchIcon />
+        <span title={`${entry.base} → ${comparisonLabel(entry.target)}`}>
+          {entry.base}
+          <ArrowRightIcon />
+          {comparisonLabel(entry.target)}
+        </span>
+        <CaretDownIcon />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          className="floating"
+        >
+          <Popover.Popup className="popup comparison-popup">
+            <Popover.Title>Compare</Popover.Title>
+            <Popover.Description className="muted">
+              {entry.repo.name}
+              {entry.repo.worktree ? " · worktree" : ""}
+            </Popover.Description>
+            <BranchPicker
+              label="Base"
+              value={entry.base}
+              groups={branchGroups(entry, false)}
+              onChange={(base) => workspace.configure(entry, { base })}
+            />
+            <div className="compare-connector">
+              <ArrowRightIcon />
+            </div>
+            <BranchPicker
+              label="Compare"
+              value={entry.target}
+              groups={branchGroups(entry, true)}
+              onChange={(target) => workspace.configure(entry, { target })}
+            />
+            <p className="popup-note">
+              Changes since the common ancestor. Uncommitted edits are included
+              only for the working tree.
+            </p>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
 function ChangedTree({
   entry,
   search,
@@ -54,8 +149,9 @@ function ChangedTree({
     paths: files.map((file) => file.name),
     gitStatus: statuses,
     initialExpansion: "open",
-    flattenEmptyDirectories: true,
+    flattenEmptyDirectories,
     density,
+    presorted: true,
     unsafeCSS: `
       [data-item-section="content"] {
         flex-shrink: 0;
@@ -88,7 +184,7 @@ function ChangedTree({
     />
   );
 }
-function RepoFiles({
+function RepoRow({
   entry,
   search,
   density,
@@ -101,35 +197,63 @@ function RepoFiles({
   workspace: WorkspaceState;
   navigate: Navigate;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
+  const included = workspace.included(entry);
   const total = stats(entry.data?.files || []);
+  const count = entry.data?.files.length;
   return (
     <Collapsible.Root
-      className="sidebar-repo"
+      className={`sidebar-repo ${included ? "" : "is-excluded"}`}
       open={open}
       onOpenChange={setOpen}
     >
-      <Collapsible.Trigger
-        className="sidebar-repo-heading"
-        title={entry.repo.path}
-      >
-        <CaretRightIcon className="disclosure" />
-        <span>{entry.repo.name}</span>
-        {entry.loading ? (
-          <span className="busy-dot" />
-        ) : (
-          <span className="diff-stat">
-            <span className="added">
-              {total.added ? `+${total.added}` : ""}
+      <div className="sidebar-repo-heading">
+        <Checkbox.Root
+          className="checkbox"
+          aria-label={`Include ${entry.repo.name}`}
+          checked={included}
+          onCheckedChange={(checked) => workspace.select(entry, checked)}
+        >
+          <Checkbox.Indicator>
+            <CheckIcon weight="bold" />
+          </Checkbox.Indicator>
+        </Checkbox.Root>
+        <Collapsible.Trigger
+          className="sidebar-repo-toggle"
+          title={entry.repo.path}
+        >
+          <CaretRightIcon className="disclosure" />
+          <span className="sidebar-repo-name">{entry.repo.name}</span>
+          {entry.repo.worktree && (
+            <span className="worktree-label">worktree</span>
+          )}
+          {entry.loading ? (
+            <span className="busy-dot" />
+          ) : included ? (
+            <span className="diff-stat">
+              <span className="added">
+                {total.added ? `+${total.added}` : ""}
+              </span>
+              <span className="removed">
+                {total.removed ? `−${total.removed}` : ""}
+              </span>
             </span>
-            <span className="removed">
-              {total.removed ? `−${total.removed}` : ""}
+          ) : (
+            <span className="selector-count">
+              {entry.error ? <WarningCircleIcon /> : (count ?? "—")}
             </span>
-          </span>
-        )}
-      </Collapsible.Trigger>
+          )}
+        </Collapsible.Trigger>
+      </div>
       <Collapsible.Panel className="sidebar-repo-panel">
-        {entry.error ? (
+        <Comparison entry={entry} workspace={workspace} />
+        {!included ? (
+          <p className="repo-note">
+            {count
+              ? `${count} changed ${count === 1 ? "file" : "files"}, not in this review.`
+              : "Not in this review."}
+          </p>
+        ) : entry.error ? (
           <p className="sidebar-error">
             <WarningCircleIcon />
             {entry.error}
@@ -171,11 +295,12 @@ export function Sidebar({
   navigate: Navigate;
 }) {
   const [query, setQuery] = useState("");
+  const [showExcluded, setShowExcluded] = useState<boolean | null>(null);
   const pending = workspace.entries.some((entry) => entry.loading);
   const needle = query.trim().toLowerCase();
   // A repository whose own name matches shows all of its files; otherwise the
   // tree is filtered down to the files that match.
-  const visible = workspace.selected.flatMap((entry) => {
+  const visible = workspace.entries.flatMap((entry) => {
     if (!needle || entry.repo.name.toLowerCase().includes(needle))
       return [{ entry, search: "" }];
     const hit = entry.data?.files.some((file) =>
@@ -183,6 +308,18 @@ export function Sidebar({
     );
     return hit ? [{ entry, search: query }] : [];
   });
+  const inReview = visible.filter(({ entry }) => workspace.included(entry));
+  const excluded = visible.filter(({ entry }) => !workspace.included(entry));
+  const row = ({ entry, search }: (typeof visible)[number]) => (
+    <RepoRow
+      key={entry.repo.path}
+      entry={entry}
+      search={search}
+      density={density}
+      workspace={workspace}
+      navigate={navigate}
+    />
+  );
   return (
     <aside className="sidebar" aria-label="Workspace navigation">
       <div className="sidebar-top">
@@ -200,8 +337,8 @@ export function Sidebar({
       <div className="sidebar-search search-field">
         <MagnifyingGlassIcon />
         <Input
-          aria-label="Filter changed files"
-          placeholder="Find a file…"
+          aria-label="Filter repositories and changed files"
+          placeholder="Find a repository or file…"
           value={query}
           onValueChange={setQuery}
         />
@@ -215,24 +352,32 @@ export function Sidebar({
             <span>Discovering repositories…</span>
           </div>
         ) : (
-          visible.map(({ entry, search }) => (
-            <RepoFiles
-              key={entry.repo.path}
-              entry={entry}
-              search={search}
-              density={density}
-              workspace={workspace}
-              navigate={navigate}
-            />
-          ))
+          inReview.map(row)
+        )}
+        {!!excluded.length && (
+          <Collapsible.Root
+            className="excluded-group"
+            open={showExcluded ?? !!needle}
+            onOpenChange={setShowExcluded}
+          >
+            <Collapsible.Trigger className="excluded-heading">
+              <CaretRightIcon className="disclosure" />
+              Excluded
+              <span className="selector-count">{excluded.length}</span>
+            </Collapsible.Trigger>
+            <Collapsible.Panel>{excluded.map(row)}</Collapsible.Panel>
+          </Collapsible.Root>
         )}
         {!workspace.scanning && !visible.length && (
           <p className="repo-note">
             {query
-              ? "No matching files."
-              : workspace.selected.length
-                ? "No changes in the current comparisons."
-                : "Choose repositories to review."}
+              ? "No matching repositories or files."
+              : "This folder has no Git repositories or worktrees inside it."}
+          </p>
+        )}
+        {!workspace.scanning && !!visible.length && !inReview.length && (
+          <p className="repo-note">
+            Nothing is in this review. Tick a repository below to add it.
           </p>
         )}
       </nav>

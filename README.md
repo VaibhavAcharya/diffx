@@ -21,7 +21,7 @@ The screenshots use sample repositories: an API and frontend adding pagination, 
 - Follow a feature across repositories. Read the API change and its frontend changes in the same view.
 - Check parallel worktrees. Review another branch's work while leaving your current checkout alone, including work produced by coding agents.
 - See the whole change before opening a PR. The working-tree comparison includes committed feature work, staged and unstaged edits, and untracked files.
-- Keep separate review contexts in tabs. Each tab remembers its folder, selected repositories, and comparison branches. Duplicate a tab to review the same workspace another way.
+- Keep separate review contexts in tabs. Each tab remembers its folder, which repositories are in the review, and their comparison branches. Duplicate a tab to review the same workspace another way.
 
 ## Start reviewing
 
@@ -31,7 +31,7 @@ You need Node.js 20.19 or newer and Git on your PATH. The command starts a local
 npx polydiff ~/Developer/my-projects
 ```
 
-Open **Repositories** to choose what to review and set each repository's base and comparison branch. **Changed** follows repositories with changes; **All**, **None**, and individual checkboxes let you control the selection. Use the sidebar to jump between files, and the refresh button to rescan and reload changes.
+The sidebar lists every repository it found. **Changed** follows the ones that have changes, and **All** and **None** are there when you want them. Tick a repository to keep it in or leave it out whatever the rule says; choosing a rule again clears those. Each repository carries its own base and comparison branch, and the ones left out keep theirs, so you can fix a wrong base before adding it back. Use the sidebar to jump between files, and the refresh button to rescan and reload changes.
 
 ![Repository selection and independent branch comparisons, including a linked worktree](https://raw.githubusercontent.com/VaibhavAcharya/polydiff/main/docs/images/comparisons.png)
 
@@ -41,7 +41,7 @@ Run `npx polydiff` without a folder to restore your previous tabs. On the first 
 
 ## Read diffs your way
 
-Switch between unified and split views, wrap long lines, expand surrounding code, and choose a light, dark, or system theme. Resize the sidebar and scroll long paths horizontally. File search and collapsible repository trees help you navigate larger reviews.
+Switch between unified and split views, wrap long lines, expand surrounding code, and choose a light, dark, or system theme. Resize the sidebar and scroll long paths horizontally. Repositories and diffs start folded, so a large review opens as a list you can work through rather than a wall of code. Expand all opens every file at once.
 
 ![Split diffs in the dark theme, showing changes across the API and frontend repositories](https://raw.githubusercontent.com/VaibhavAcharya/polydiff/main/docs/images/split-dark.png)
 

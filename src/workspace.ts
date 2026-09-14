@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parsePatchFiles, type FileDiffMetadata } from "@pierre/diffs";
 import { api } from "./api";
+import { sortToTreeOrder } from "./order";
+import { exceptionFor, included as isIncluded } from "./selection";
 import type { RepoSettings, Selection, Tab, TabPatch } from "./store";
 
 type Repo = {
@@ -53,14 +55,13 @@ export function stats(files: FileDiffMetadata[]) {
 }
 // Only values that differ from the scanned defaults are worth storing, and an
 // empty entry tells the server to forget that repository's overrides.
-function overrides(repo: Repo, settings: RepoSettings, selection: Selection) {
+function overrides(repo: Repo, settings: RepoSettings) {
   const minimal: RepoSettings = {};
   if (settings.base && settings.base !== repo.base)
     minimal.base = settings.base;
   if (settings.target && settings.target !== "@working")
     minimal.target = settings.target;
-  if (selection === "custom" && settings.selected !== undefined)
-    minimal.selected = settings.selected;
+  if (settings.selected !== undefined) minimal.selected = settings.selected;
   return minimal;
 }
 
@@ -97,13 +98,7 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
     [repos, config, results],
   );
   const included = useCallback(
-    (entry: Entry) => {
-      if (selection === "all") return true;
-      if (selection === "none") return false;
-      if (selection === "custom" && entry.selected !== undefined)
-        return entry.selected;
-      return !!entry.data?.files.length;
-    },
+    (entry: Entry) => isIncluded(entry, selection),
     [selection],
   );
   const selected = useMemo(() => entries.filter(included), [entries, included]);
@@ -138,7 +133,7 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
           [repo.path]: {
             loading: false,
             data: {
-              files,
+              files: sortToTreeOrder(files),
               mergeBase: changes.mergeBase,
               targetRef: changes.targetRef,
               warnings: changes.warnings,
@@ -235,7 +230,7 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
     if (!repos.length) return;
     const stored: Record<string, RepoSettings> = {};
     for (const repo of repos)
-      stored[repo.path] = overrides(repo, config[repo.path] || {}, selection);
+      stored[repo.path] = overrides(repo, config[repo.path] || {});
     const payload = JSON.stringify({ repos: stored, selection });
     if (payload === saved.current) return;
     saved.current = payload;
@@ -260,28 +255,21 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
     },
     [load],
   );
-  // Ticking one repository keeps whatever was on screen and turns the preset
-  // into an explicit list.
+  // Ticking a repository records an exception to the rule rather than freezing
+  // the rule into a list.
   const select = useCallback(
-    (path: string, value: boolean) => {
-      setConfig((previous) => {
-        const next = { ...previous };
-        if (selection !== "custom")
-          for (const entry of entries)
-            next[entry.repo.path] = {
-              ...next[entry.repo.path],
-              selected: included(entry),
-            };
-        next[path] = { ...next[path], selected: value };
-        return next;
-      });
-      setMode("custom");
+    (entry: Entry, value: boolean) => {
+      const selected = exceptionFor(entry, selection, value);
+      setConfig((previous) => ({
+        ...previous,
+        [entry.repo.path]: { ...previous[entry.repo.path], selected },
+      }));
     },
-    [entries, included, selection],
+    [selection],
   );
+  // Choosing a rule clears the exceptions, so None still means none.
   const setSelection = useCallback((mode: Selection) => {
     setMode(mode);
-    if (mode === "custom") return;
     setConfig((previous) =>
       Object.fromEntries(
         Object.entries(previous).map(([path, settings]) => [
