@@ -95,6 +95,12 @@ pnpm format:check
 
 GitHub Actions runs every check on Linux, Windows, and macOS against Node 22 and 24, and separately runs the store and HTTP tests on Node 20.19 to hold the floor that `engines` claims. The Git tests need Node 21 or newer, because they import the browser diff library to check the parsed patch.
 
+## Releases
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org). release-please watches `main`, keeps a release pull request open with the next version and the generated `CHANGELOG.md`, and tags the release when that pull request merges. `feat:` moves the minor version while the project is below 1.0, `fix:` moves the patch, and `ci:`, `chore:`, `test:` and `build:` stay out of the changelog.
+
+Publishing to npm is not automated yet. It needs an `NPM_TOKEN` repository secret and a job that runs on the release tag.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
