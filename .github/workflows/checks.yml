@@ -49,4 +49,8 @@ jobs:
         with:
           node-version: "20.19"
       - run: node --version
-      - run: node --test server/db.test.mjs server/git.test.mjs server/http.test.mjs
+      # git.test.mjs is left out because it imports the browser diff library for
+      # its assertions, and that reads navigator, which arrived in Node 21. The
+      # shipped CLI imports nothing but node: built-ins, and http.test.mjs
+      # spawns it for real, which is what this job exists to prove.
+      - run: node --test server/db.test.mjs server/http.test.mjs
