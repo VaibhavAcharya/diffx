@@ -21,7 +21,7 @@ export async function api<T>(
   }
   if (!response.headers.get("content-type")?.includes("application/json"))
     throw new Error(
-      "Start the local server with pnpm start to browse repositories.",
+      "Start polydiff in your terminal and open the URL it prints.",
     );
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || "Request failed.");

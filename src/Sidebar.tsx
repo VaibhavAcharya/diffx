@@ -25,7 +25,7 @@ import { stats, type Entry, type useWorkspace } from "./workspace";
 type WorkspaceState = ReturnType<typeof useWorkspace>;
 type Navigate = (repo: string, file?: string) => void;
 // The tallest a single repository's tree grows before it scrolls on its own.
-const maxRows = 20;
+const maxVisibleTreeRows = 20;
 
 function ChangedTree({
   entry,
@@ -70,7 +70,7 @@ function ChangedTree({
     <FileTree
       model={model}
       className="file-tree"
-      style={{ height: Math.min(maxRows, rows) * itemHeight }}
+      style={{ height: Math.min(maxVisibleTreeRows, rows) * itemHeight }}
     />
   );
 }

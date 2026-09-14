@@ -20,7 +20,7 @@ export async function git(cwd, args, allowed = [0]) {
     ).stdout;
   } catch (error) {
     if (allowed.includes(error.code)) return error.stdout;
-    throw new Error(error.stderr?.trim() || error.message);
+    throw new Error(error.stderr?.trim() || error.message, { cause: error });
   }
 }
 // Directory names that never hold a repository worth reviewing. Build output

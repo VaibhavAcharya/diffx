@@ -331,7 +331,10 @@ function WorkspaceView({
             >
               <div className="repo-divider">
                 <strong>{entry.repo.name}</strong>
-                <span>{entry.data?.files.length || 0} files</span>
+                <span>
+                  {entry.data?.files.length || 0}{" "}
+                  {entry.data?.files.length === 1 ? "file" : "files"}
+                </span>
                 {entry.repo.worktree && (
                   <span className="worktree-label">worktree</span>
                 )}

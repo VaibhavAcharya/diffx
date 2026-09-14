@@ -138,7 +138,10 @@ function SelectorRow({
       </span>
       <span
         className={`selector-count ${entry.error ? "has-error" : ""}`}
-        title={entry.error || `${entry.data?.files.length || 0} changed files`}
+        title={
+          entry.error ||
+          `${entry.data?.files.length || 0} changed ${entry.data?.files.length === 1 ? "file" : "files"}`
+        }
       >
         {entry.loading ? (
           <span className="busy-dot" />
