@@ -59,7 +59,13 @@ export function RepoSelector({ workspace }: { workspace: WorkspaceState }) {
         </Select.Icon>
       </Select.Trigger>
       <Select.Portal>
-        <Select.Positioner sideOffset={8} align="start" className="floating">
+        <Select.Positioner
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          alignItemWithTrigger={false}
+          className="floating"
+        >
           <Select.Popup className="popup selector-popup">
             <Select.List className="option-list">
               {rules.map((rule) => (
@@ -67,11 +73,11 @@ export function RepoSelector({ workspace }: { workspace: WorkspaceState }) {
                   key={rule.value}
                   value={rule.value}
                   className="option"
+                  title={rule.hint}
                 >
-                  <span>
-                    <Select.ItemText>{rule.label}</Select.ItemText>
-                    <small>{rule.hint}</small>
-                  </span>
+                  <Select.ItemText className="option-label">
+                    {rule.label}
+                  </Select.ItemText>
                   <Select.ItemIndicator>
                     <CheckIcon />
                   </Select.ItemIndicator>
