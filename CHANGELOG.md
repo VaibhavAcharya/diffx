@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/VaibhavAcharya/polydiff/compare/v0.1.1...v0.1.2) (2026-09-14)
+
+
+### Documentation
+
+* present polydiff as a workspace review tool ([7ebba9e](https://github.com/VaibhavAcharya/polydiff/commit/7ebba9ea28135d9f5da951e90ef236048555b53f))
+
 ## [0.1.1](https://github.com/VaibhavAcharya/polydiff/compare/v0.1.0...v0.1.1) (2026-09-14)
 
 
