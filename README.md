@@ -1,5 +1,7 @@
 # diffx
 
+[![checks](https://github.com/VaibhavAcharya/diffx/actions/workflows/checks.yml/badge.svg)](https://github.com/VaibhavAcharya/diffx/actions/workflows/checks.yml)
+
 Review uncommitted and unmerged changes across every Git repository and worktree in a directory, in your browser.
 
 If your work lives in one folder full of repositories and feature worktrees, diffx shows what changed in all of them at once, without checking anything out.
@@ -91,7 +93,7 @@ pnpm format:check
 
 `pnpm test` covers the state store, Git discovery and comparison, and the HTTP boundary. The HTTP tests spawn the real CLI, so run `pnpm build` first. `pnpm format` formats the project with Prettier defaults.
 
-Every check runs on Linux, Windows, and macOS against Node 20 and 24 in GitHub Actions.
+GitHub Actions runs every check on Linux, Windows, and macOS against Node 22 and 24, and separately runs the store and HTTP tests on Node 20.19 to hold the floor that `engines` claims. The Git tests need Node 21 or newer, because they import the browser diff library to check the parsed patch.
 
 ## License
 
