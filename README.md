@@ -99,7 +99,9 @@ GitHub Actions runs every check on Linux, Windows, and macOS against Node 22 and
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org). release-please watches `main`, keeps a release pull request open with the next version and the generated `CHANGELOG.md`, and tags the release when that pull request merges. `feat:` moves the minor version while the project is below 1.0, `fix:` moves the patch, and `ci:`, `chore:`, `test:` and `build:` stay out of the changelog.
 
-Publishing to npm is not automated yet. It needs an `NPM_TOKEN` repository secret and a job that runs on the release tag.
+Publishing happens in the same workflow run that creates the release, over OIDC through npm's trusted publishing, so no token is stored anywhere.
+
+`main` blocks force pushes and deletions, and every check must be green before a pull request merges. Release pull requests are opened by `github-actions[bot]`, which is not a collaborator, so their checks wait on one "Approve and run" click before the merge button unblocks.
 
 ## License
 
