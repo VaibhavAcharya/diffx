@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <style>
+    .surface { fill: #171717 }
+    .added { fill: #16834a }
+    .removed { fill: #c04545 }
+    @media (prefers-color-scheme: dark) {
+      .surface { fill: #ededed }
+      .added { fill: #63c995 }
+      .removed { fill: #e68888 }
+    }
+  </style>
+  <g opacity="0.2">
+    <rect class="surface" x="24" y="24" width="140" height="140" rx="28" />
+    <rect class="surface" x="68" y="68" width="164" height="164" rx="32" />
+  </g>
+  <rect class="added" x="98" y="118" width="104" height="22" rx="11" />
+  <rect class="removed" x="98" y="160" width="68" height="22" rx="11" />
+</svg>
