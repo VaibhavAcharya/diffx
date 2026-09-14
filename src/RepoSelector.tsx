@@ -54,7 +54,7 @@ export function RepoSelector({ workspace }: { workspace: WorkspaceState }) {
             ? "Scanning…"
             : `${workspace.selected.length} of ${workspace.entries.length}`}
         </small>
-        <Select.Icon>
+        <Select.Icon className="selector-caret">
           <CaretUpDownIcon />
         </Select.Icon>
       </Select.Trigger>

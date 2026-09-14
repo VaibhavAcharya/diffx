@@ -259,15 +259,12 @@ input:focus-visible {
   height: 22px;
   color: var(--muted);
 }
-.selector-trigger > span {
+.selector-trigger strong {
+  flex: 1;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-.selector-trigger strong {
-  flex: 1;
-  min-width: 0;
   font-size: 13px;
   font-weight: 500;
 }
@@ -277,9 +274,14 @@ input:focus-visible {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.selector-trigger > svg:last-child {
+.selector-caret {
+  display: flex;
+  flex-shrink: 0;
   color: var(--muted);
+}
+.selector-caret svg {
   width: 14px;
+  height: 14px;
 }
 .search-field {
   display: flex;
