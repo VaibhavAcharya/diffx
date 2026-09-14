@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/VaibhavAcharya/polydiff/compare/v0.2.0...v0.3.0) (2026-09-14)
+
+
+### Features
+
+* rework the repository sidebar and fix the file order ([#9](https://github.com/VaibhavAcharya/polydiff/issues/9)) ([470c63e](https://github.com/VaibhavAcharya/polydiff/commit/470c63ea6eefae27159bd0a35bd85f918d1a88db))
+
 ## [0.2.0](https://github.com/VaibhavAcharya/polydiff/compare/v0.1.2...v0.2.0) (2026-09-14)
 
 
