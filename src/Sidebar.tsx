@@ -56,6 +56,20 @@ function ChangedTree({
     initialExpansion: "open",
     flattenEmptyDirectories: true,
     density,
+    unsafeCSS: `
+      [data-item-section="content"] {
+        flex-shrink: 0;
+        min-width: max-content;
+        max-width: none;
+        overflow: visible;
+      }
+      [data-type="item"] {
+        min-width: max-content;
+      }
+      [data-file-tree-virtualized-scroll="true"] {
+        overflow-x: auto;
+      }
+    `,
     onSelectionChange: (paths) => {
       if (paths[0] && files.some((file) => file.name === paths[0]))
         navigate(entry.repo.path, paths[0]);

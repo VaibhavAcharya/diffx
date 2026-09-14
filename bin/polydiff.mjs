@@ -10,6 +10,9 @@ import { scan, diff, fileContents } from "../server/git.mjs";
 import { chooseDirectory } from "../server/picker.mjs";
 import * as db from "../server/db.mjs";
 
+const { version } = JSON.parse(
+  await readFile(new URL("../package.json", import.meta.url), "utf8"),
+);
 const args = process.argv.slice(2);
 if (args.includes("--help")) {
   console.log(
@@ -156,7 +159,9 @@ const server = createServer(async (req, res) => {
 server.listen(0, "127.0.0.1", () => {
   origin = `http://127.0.0.1:${server.address().port}`;
   const url = `${origin}/#${token}`;
-  console.log(`polydiff · ${initialRoot}\n${url}\nPress Ctrl+C to stop.`);
+  console.log(
+    `polydiff v${version} · ${initialRoot}\n${url}\nPress Ctrl+C to stop.`,
+  );
   if (!args.includes("--no-open")) {
     const command =
       process.platform === "darwin"

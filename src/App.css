@@ -87,7 +87,7 @@ input:focus-visible {
 }
 .workspace-view {
   display: grid;
-  grid-template-columns: 304px minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -189,6 +189,22 @@ input:focus-visible {
 }
 .desktop-sidebar {
   min-height: 0;
+  min-width: 0;
+  max-width: calc(100vw - 360px);
+  position: relative;
+}
+.sidebar-resizer {
+  position: absolute;
+  inset: 0 -3px 0 auto;
+  width: 7px;
+  z-index: 5;
+  cursor: col-resize;
+  touch-action: none;
+}
+.sidebar-resizer:hover,
+.sidebar-resizer:focus-visible {
+  background: var(--border);
+  outline: none;
 }
 .sidebar {
   height: 100%;
@@ -850,9 +866,6 @@ input:focus-visible {
   }
 }
 @media (max-width: 1000px) {
-  .workspace-view {
-    grid-template-columns: 270px minmax(0, 1fr);
-  }
   .divider-comparison {
     display: none;
   }
@@ -1039,10 +1052,7 @@ input:focus-visible {
 }
 .sidebar-repo-heading > span:first-of-type {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
 }
 .sidebar-repo-heading .diff-stat,
 .sidebar-repo-heading .busy-dot {
@@ -1200,8 +1210,49 @@ input:focus-visible {
 }
 .settings-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   margin-top: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.skip-folders {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.folder-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 150px;
+  overflow: auto;
+  margin: 10px 0;
+}
+.folder-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 7px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.folder-chip:hover {
+  background: var(--hover);
+}
+.folder-chip svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.folder-add {
+  display: flex;
+  gap: 12px;
+}
+.folder-add .input {
+  flex: 1;
+  min-width: 0;
 }
 .settings-actions .primary-button {
   width: auto;

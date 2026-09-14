@@ -26,6 +26,7 @@ import {
   XCircleIcon,
 } from "@phosphor-icons/react";
 import { Sidebar } from "./Sidebar";
+import { ResizableSidebar } from "./ResizableSidebar";
 import { DiffFile } from "./DiffView";
 import { SettingsDialog } from "./Settings";
 import { Empty, IconButton, Loading } from "./ui";
@@ -125,7 +126,11 @@ function TabBar({ store, settings }: { store: Store; settings: Settings }) {
             <ArrowCounterClockwiseIcon />
           </IconButton>
         )}
-        <SettingsDialog settings={settings} onChange={store.setSettings} />
+        <SettingsDialog
+          settings={settings}
+          onChange={store.setSettings}
+          onReset={store.resetSettings}
+        />
       </div>
     </IconContext.Provider>
   );
@@ -190,13 +195,16 @@ function WorkspaceView({
   }
   return (
     <>
-      <div className="desktop-sidebar">
+      <ResizableSidebar
+        width={settings.sidebarWidth}
+        onResize={(sidebarWidth) => setSettings({ sidebarWidth })}
+      >
         <Sidebar
           workspace={workspace}
           density={settings.density}
           navigate={navigate}
         />
-      </div>
+      </ResizableSidebar>
       <main className="review-pane" aria-busy={pending}>
         <header className="review-toolbar">
           <Dialog.Root open={sidebarOpen} onOpenChange={setSidebarOpen}>

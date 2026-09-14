@@ -41,7 +41,7 @@ Run `npx polydiff` without a folder to restore your previous tabs. On the first 
 
 ## Read diffs your way
 
-Switch between unified and split views, wrap long lines, expand surrounding code, and choose a light, dark, or system theme. File search and collapsible repository trees help you navigate larger reviews.
+Switch between unified and split views, wrap long lines, expand surrounding code, and choose a light, dark, or system theme. Resize the sidebar and scroll long paths horizontally. File search and collapsible repository trees help you navigate larger reviews.
 
 ![Split diffs in the dark theme, showing changes across the API and frontend repositories](https://raw.githubusercontent.com/VaibhavAcharya/polydiff/main/docs/images/split-dark.png)
 
@@ -49,7 +49,7 @@ Switch between unified and split views, wrap long lines, expand surrounding code
 
 Your code stays on your machine. The app connects to a local server bound to loopback, with a per-session token for API requests. It does not upload code, check out branches, fetch, stage, or edit repository files. Preferences and tabs are saved in `~/.polydiff/db.json`.
 
-Discovery finds repositories and worktrees beneath the folder you open, including `.worktrees` inside repositories. It skips dependency and cache folders. Search depth and directory limits are adjustable in Settings.
+Discovery finds repositories and worktrees beneath the folder you open, including `.worktrees` inside repositories. It skips dependency and cache folders by default. Edit the skipped-folder list, search depth, and directory limits in Settings. Reset preferences restores the defaults while keeping your tabs and comparisons.
 
 Binary changes show a notice. Untracked files over 1 MB and untracked symlinks are skipped, and repositories need at least one commit. See the [usage reference](https://github.com/VaibhavAcharya/polydiff/blob/main/docs/usage.md) for comparison details, discovery limits, and stored settings.
 

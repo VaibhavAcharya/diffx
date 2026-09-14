@@ -23,10 +23,10 @@ export async function git(cwd, args, allowed = [0]) {
     throw new Error(error.stderr?.trim() || error.message, { cause: error });
   }
 }
-// Directory names that never hold a repository worth reviewing. Build output
+// Default directory names to skip during discovery. Build output
 // names like build, dist, and target are deliberately absent: they are also
 // ordinary repository names.
-const ignored = new Set([
+export const defaultIgnored = [
   ".git",
   "node_modules",
   "vendor",
@@ -48,15 +48,15 @@ const ignored = new Set([
   ".terraform",
   "DerivedData",
   "Pods",
-]);
+];
 // macOS bundles are directory trees presented as single files.
 const bundle = /\.(app|framework|bundle|xcassets|photoslibrary)$/i;
 export async function scan(
   root,
-  { depth = 8, budget = 10000, ignore = [] } = {},
+  { depth = 8, budget = 10000, ignore = defaultIgnored } = {},
 ) {
   if (!(await stat(root)).isDirectory()) throw new Error("Choose a directory.");
-  const skip = ignore.length ? new Set([...ignored, ...ignore]) : ignored;
+  const skip = new Set(ignore);
   const repos = [];
   const warnings = [];
   let visited = 0;
