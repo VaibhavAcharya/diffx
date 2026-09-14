@@ -78,8 +78,8 @@ export function RepoSelector({ workspace }: { workspace: WorkspaceState }) {
                   <Select.ItemText className="option-label">
                     {rule.label}
                   </Select.ItemText>
-                  <Select.ItemIndicator>
-                    <CheckIcon />
+                  <Select.ItemIndicator className="option-check">
+                    <CheckIcon weight="bold" />
                   </Select.ItemIndicator>
                 </Select.Item>
               ))}

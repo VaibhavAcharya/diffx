@@ -939,6 +939,15 @@ input:focus-visible {
   flex: 1;
   overflow-wrap: anywhere;
 }
+.option-check {
+  display: flex;
+  flex-shrink: 0;
+}
+.option-check svg {
+  width: 13px;
+  height: 13px;
+  color: var(--foreground);
+}
 .selector-exceptions {
   display: flex;
   align-items: center;
