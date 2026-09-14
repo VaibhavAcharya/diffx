@@ -10,19 +10,23 @@ Closing a tab keeps it in a list of the ten most recently closed. The restore bu
 
 ## Settings and stored state
 
-Settings apply everywhere and cover appearance (theme, unified or split, line wrapping, sidebar density and width), diffs (within-line highlighting, context lines per expansion), and discovery (search depth, directory budget, and folder names to skip). Discovery settings take effect on the next rescan. Each tab separately remembers its directory, its selection mode, and any repository whose base branch, comparison branch, or individual tick you changed.
+Settings apply everywhere and cover appearance (theme, unified or split, line wrapping, sidebar density and width), diffs (within-line highlighting, context lines per expansion), and discovery (search depth, directory budget, and folder names to skip). Discovery settings take effect on the next rescan. Each tab separately remembers its directory, its rule, and any repository whose base branch, comparison branch, or tick you changed.
+
+Which repositories are in a review is a rule plus exceptions. Changed follows the repositories that have changes; All and None are absolute. Ticking a repository overrides the rule for that one repository, in either direction. Changing the rule clears the overrides, and Clear in the rule menu drops them without changing the rule. Only the overrides are stored, so a workspace that gains a repository with changes picks it up on the next scan without being asked.
 
 Skip these folders shows the full default list. Remove a name to include that folder in discovery, or add a folder name to skip it. Reset preferences restores all app defaults, including this list and the sidebar width, while keeping open tabs, recently closed tabs, and repository comparisons.
 
 Drag the sidebar's right edge to resize it. You can also focus the divider and use Left/Right to adjust its width, or Home/End for the minimum/maximum. The width is saved across sessions. Long file and directory names scroll horizontally within each repository tree.
 
-Search text, which files are collapsed, and scroll position are deliberately not stored, because restoring them is more surprising than retyping them.
+Repositories in the sidebar and files in the review pane both open folded. Clicking a file in the sidebar expands that file and scrolls to it, and the toolbar button expands or folds every file at once.
+
+Search text, which files are expanded, and scroll position are deliberately not stored, because restoring them is more surprising than retyping them.
 
 State lives in `~/.polydiff/db.json`, written atomically and debounced; set `POLYDIFF_HOME` to store it elsewhere. Only values that differ from the defaults are written, so the file stays readable. A file that cannot be parsed is moved aside to `db.json.corrupt` and a fresh one is started. Files written by an earlier version are migrated on first read.
 
 ```json
 {
-  "version": 3,
+  "version": 4,
   "revision": 48,
   "settings": { "layout": "split" },
   "activeTab": "tmu0as73o",
@@ -40,7 +44,9 @@ State lives in `~/.polydiff/db.json`, written atomically and debounced; set `POL
 }
 ```
 
-The browser sends one command per change rather than the whole document, and the server applies it to whatever is on disk. Repository settings merge, so a repository missing from the latest scan keeps what you gave it, and two windows editing different tabs do not overwrite each other.
+The browser sends one command per change rather than the whole document, and the server applies it to whatever is on disk. Repository settings merge, so a repository missing from the latest scan keeps what you gave it, including its override, and two windows editing different tabs do not overwrite each other.
+
+Files written before version 4 had a separate custom selection mode. Such a tab becomes Changed with every tick kept as an override, which includes the same repositories it did before. A tick stored under All or None never applied to anything and is dropped. Because the file is rewritten on first read, running an older polydiff afterwards loses those overrides.
 
 ## Comparisons
 

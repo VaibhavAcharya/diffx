@@ -109,9 +109,9 @@ export function BranchPicker({
                         value={item}
                       >
                         <GitBranchIcon />
-                        <span>{item.label}</span>
-                        <Combobox.ItemIndicator>
-                          <CheckIcon />
+                        <span className="option-label">{item.label}</span>
+                        <Combobox.ItemIndicator className="option-check">
+                          <CheckIcon weight="bold" />
                         </Combobox.ItemIndicator>
                       </Combobox.Item>
                     )}

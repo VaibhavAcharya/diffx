@@ -13,7 +13,7 @@ export type Settings = {
   scanBudget: number;
   ignore: string[];
 };
-export type Selection = "changed" | "all" | "none" | "custom";
+export type Selection = "changed" | "all" | "none";
 export type RepoSettings = {
   base?: string;
   target?: string;

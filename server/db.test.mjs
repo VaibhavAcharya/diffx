@@ -14,7 +14,7 @@ test.after(() => rm(home, { recursive: true, force: true }));
 
 test("returns a blank database with default settings", async () => {
   assert.deepEqual(await db.read(), {
-    version: 3,
+    version: 4,
     revision: 0,
     settings: db.defaults,
     activeTab: null,
@@ -27,10 +27,15 @@ test("round trips a tab and stores only settings that differ", async () => {
   const tab = {
     id: "t1",
     root: "/tmp/workspace",
-    selection: "custom",
+    selection: "changed",
     repos: { "/tmp/workspace/build": { base: "main", selected: true } },
   };
-  await db.write({ activeTab: "t1", tabs: [tab], settings: { wrap: true } });
+  await db.write({
+    version: 4,
+    activeTab: "t1",
+    tabs: [tab],
+    settings: { wrap: true },
+  });
   const state = await db.read();
   assert.deepEqual(state.tabs, [tab]);
   assert.equal(state.settings.wrap, true);
@@ -59,7 +64,7 @@ test("drops malformed tabs, duplicate ids, and relative repository paths", () =>
   assert.equal(state.activeTab, "keep");
 });
 
-test("migrates version 1 and infers the selection mode", () => {
+test("migrates version 1 ticks into exceptions on the changed rule", () => {
   const state = db.sanitize({
     version: 1,
     activeTab: "a",
@@ -68,9 +73,48 @@ test("migrates version 1 and infers the selection mode", () => {
       { id: "b", root: "/tmp/b", repos: { "/tmp/b/one": { base: "main" } } },
     ],
   });
-  assert.equal(state.tabs[0].selection, "custom");
+  assert.equal(state.tabs[0].selection, "changed");
+  assert.deepEqual(state.tabs[0].repos, { "/tmp/a/one": { selected: true } });
   assert.equal(state.tabs[1].selection, "changed");
   assert.deepEqual(state.settings, db.defaults);
+});
+
+test("retires the custom mode and keeps only the ticks that counted", () => {
+  const tabs = [
+    {
+      id: "a",
+      root: "/tmp/a",
+      selection: "custom",
+      repos: {
+        "/tmp/a/one": { selected: false },
+        "/tmp/a/two": { base: "main", selected: true },
+      },
+    },
+    {
+      id: "b",
+      root: "/tmp/b",
+      selection: "all",
+      repos: { "/tmp/b/one": { target: "release", selected: false } },
+    },
+  ];
+  const state = db.sanitize({ version: 3, tabs, recent: [] });
+  assert.equal(state.version, 4);
+  assert.equal(state.tabs[0].selection, "changed");
+  assert.deepEqual(state.tabs[0].repos, {
+    "/tmp/a/one": { selected: false },
+    "/tmp/a/two": { base: "main", selected: true },
+  });
+  // A tick under all or none never applied, so it must not become an exception.
+  assert.equal(state.tabs[1].selection, "all");
+  assert.deepEqual(state.tabs[1].repos, {
+    "/tmp/b/one": { target: "release" },
+  });
+  // Once migrated, an exception on any rule is real and survives re-sanitizing.
+  const again = db.sanitize({
+    ...state,
+    tabs: [{ ...state.tabs[1], repos: { "/tmp/b/one": { selected: false } } }],
+  });
+  assert.deepEqual(again.tabs[0].repos, { "/tmp/b/one": { selected: false } });
 });
 
 test("discards repository settings that only repeat the defaults", () => {
@@ -116,7 +160,7 @@ test("migrates additive exclusions without changing tab selection", () => {
     settings: { ignore: ["target", "node_modules"] },
     tabs: [{ id: "a", root: "/tmp/a", selection: "all" }],
   });
-  assert.equal(state.version, 3);
+  assert.equal(state.version, 4);
   assert.deepEqual(state.settings.ignore, [...db.defaults.ignore, "target"]);
   assert.equal(state.tabs[0].selection, "all");
   const custom = Array.from({ length: 100 }, (_, index) => `cache-${index}`);
@@ -242,14 +286,20 @@ test("a tab command merges repositories instead of replacing them", () => {
   const state = db.apply(start, {
     op: "tab",
     id: "a",
-    selection: "custom",
+    selection: "all",
     repos: { "/tmp/a/two": { selected: false } },
   });
   assert.deepEqual(state.tabs[0].repos, {
     "/tmp/a/one": { base: "main" },
     "/tmp/a/two": { selected: false },
   });
-  assert.equal(state.tabs[0].selection, "custom");
+  assert.equal(state.tabs[0].selection, "all");
+  // The retired custom mode is not a rule any more, so it leaves the tab alone.
+  assert.equal(
+    db.apply(state, { op: "tab", id: "a", selection: "custom" }).tabs[0]
+      .selection,
+    "all",
+  );
   const cleared = db.apply(state, {
     op: "tab",
     id: "a",

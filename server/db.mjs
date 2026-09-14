@@ -32,11 +32,11 @@ const ranges = {
   scanDepth: [1, 16],
   scanBudget: [100, 200000],
 };
-const selections = ["changed", "all", "none", "custom"];
+const selections = ["changed", "all", "none"];
 
 function blank() {
   return {
-    version: 3,
+    version: 4,
     revision: 0,
     settings: { ...defaults },
     activeTab: null,
@@ -69,7 +69,7 @@ function cleanSettings(value) {
     ].slice(0, 200);
   return settings;
 }
-function cleanRepos(value) {
+function cleanRepos(value, keepSelected = true) {
   if (!value || typeof value !== "object") return {};
   const repos = {};
   for (const [repo, settings] of Object.entries(value)) {
@@ -84,43 +84,42 @@ function cleanRepos(value) {
       settings.target !== "@working"
     )
       clean.target = settings.target;
-    if (typeof settings.selected === "boolean")
+    if (keepSelected && typeof settings.selected === "boolean")
       clean.selected = settings.selected;
     if (Object.keys(clean).length) repos[repo] = clean;
   }
   return repos;
 }
-function cleanTab(value, seen, migrating) {
+function cleanTab(value, seen, version) {
   if (!value || typeof value !== "object") return null;
   if (typeof value.id !== "string" || !value.id || seen.has(value.id))
     return null;
   if (typeof value.root !== "string" || !path.isAbsolute(value.root))
     return null;
   seen.add(value.id);
-  const repos = cleanRepos(value.repos);
-  // Version 1 had no selection mode. A tab where every repository was ticked
-  // by hand is a custom selection; anything else followed the changes.
-  const inferred =
-    migrating &&
-    Object.values(repos).some((settings) => settings.selected !== undefined)
-      ? "custom"
-      : "changed";
+  // Before version 4 a tick only counted in the retired custom mode, so a tick
+  // stored under any other mode was inert and must not become an exception.
+  // Version 1 had no mode and read a ticked repository as custom.
+  const repos = cleanRepos(
+    value.repos,
+    version >= 4 || version === 1 || value.selection === "custom",
+  );
   return {
     id: value.id,
     root: value.root,
     selection: selections.includes(value.selection)
       ? value.selection
-      : inferred,
+      : "changed",
     repos,
   };
 }
 export function sanitize(value) {
   if (!value || typeof value !== "object") return blank();
-  const migrating = value.version === 1;
+  const version = Number(value.version) || 0;
   const seen = new Set();
   const list = (input) =>
     (Array.isArray(input) ? input : [])
-      .map((tab) => cleanTab(tab, seen, migrating))
+      .map((tab) => cleanTab(tab, seen, version))
       .filter(Boolean);
   const tabs = list(value.tabs);
   const recent = list(value.recent).slice(0, recentLimit);
@@ -129,10 +128,10 @@ export function sanitize(value) {
       ? value.revision
       : 0;
   return {
-    version: 3,
+    version: 4,
     revision,
     settings: cleanSettings(
-      value.version === 1 || value.version === 2
+      version === 1 || version === 2
         ? {
             ...value.settings,
             ignore: [
