@@ -1,25 +1,19 @@
-import { Popover } from "@base-ui/react/popover";
-import { Toggle } from "@base-ui/react/toggle";
-import { ToggleGroup } from "@base-ui/react/toggle-group";
-import { CaretDownIcon, FoldersIcon } from "@phosphor-icons/react";
+import { Button } from "@base-ui/react/button";
+import { Select } from "@base-ui/react/select";
+import { CaretUpDownIcon, CheckIcon, FoldersIcon } from "@phosphor-icons/react";
 import type { Entry, useWorkspace } from "./workspace";
 import type { Selection } from "./store";
 
 type WorkspaceState = ReturnType<typeof useWorkspace>;
-const presets: { value: Selection; label: string; hint: string }[] = [
+const rules: { value: Selection; label: string; hint: string }[] = [
   {
     value: "changed",
     label: "Changed",
-    hint: "Follow repositories that have changes",
+    hint: "Follow the repositories that have changes",
   },
-  { value: "all", label: "All", hint: "Include every repository" },
-  { value: "none", label: "None", hint: "Leave every repository out" },
+  { value: "all", label: "All", hint: "Every repository in the folder" },
+  { value: "none", label: "None", hint: "Start from an empty review" },
 ];
-const ruleLabel: Record<Selection, string> = {
-  changed: "Changed",
-  all: "All",
-  none: "None",
-};
 function names(entries: Entry[]) {
   if (entries.length > 2) return `${entries.length} repositories`;
   return entries.map((entry) => entry.repo.name).join(" and ");
@@ -35,54 +29,69 @@ function summarise(entries: Entry[]) {
     .join(", ");
 }
 export function RepoSelector({ workspace }: { workspace: WorkspaceState }) {
-  const exceptions = workspace.entries.filter(
-    (entry) => entry.selected !== undefined,
+  const summary = summarise(
+    workspace.entries.filter((entry) => entry.selected !== undefined),
   );
-  const summary = summarise(exceptions);
   return (
-    <Popover.Root>
-      <Popover.Trigger className="selector-trigger" aria-label="Repositories">
+    <Select.Root
+      value={workspace.selection}
+      onValueChange={(value) => workspace.setSelection(value as Selection)}
+    >
+      <Select.Trigger
+        className="selector-trigger"
+        aria-label="Which repositories to review"
+      >
         <FoldersIcon />
-        <strong>{ruleLabel[workspace.selection]}</strong>
+        <strong>
+          <Select.Value>
+            {(value: Selection) =>
+              rules.find((rule) => rule.value === value)?.label
+            }
+          </Select.Value>
+        </strong>
         <small>
           {workspace.scanning
             ? "Scanning…"
             : `${workspace.selected.length} of ${workspace.entries.length}`}
         </small>
-        <CaretDownIcon />
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner sideOffset={8} align="start" className="floating">
-          <Popover.Popup className="popup selector-popup">
-            <Popover.Title>Which repositories to review</Popover.Title>
-            <ToggleGroup
-              className="segmented"
-              aria-label="Which repositories to review"
-              value={[workspace.selection]}
-              onValueChange={(value) =>
-                workspace.setSelection(
-                  (value[0] as Selection) ?? workspace.selection,
-                )
-              }
-            >
-              {presets.map((preset) => (
-                <Toggle
-                  key={preset.value}
-                  value={preset.value}
-                  title={preset.hint}
+        <Select.Icon>
+          <CaretUpDownIcon />
+        </Select.Icon>
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Positioner sideOffset={8} align="start" className="floating">
+          <Select.Popup className="popup selector-popup">
+            <Select.List className="option-list">
+              {rules.map((rule) => (
+                <Select.Item
+                  key={rule.value}
+                  value={rule.value}
+                  className="option"
                 >
-                  {preset.label}
-                </Toggle>
+                  <span>
+                    <Select.ItemText>{rule.label}</Select.ItemText>
+                    <small>{rule.hint}</small>
+                  </span>
+                  <Select.ItemIndicator>
+                    <CheckIcon />
+                  </Select.ItemIndicator>
+                </Select.Item>
               ))}
-            </ToggleGroup>
-            <p className="popup-note">
-              {summary
-                ? `Currently ${ruleLabel[workspace.selection].toLowerCase()}, ${summary}. Choosing a rule again clears those.`
-                : "Tick a repository in the sidebar to keep it in or leave it out, whatever this rule says."}
-            </p>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+            </Select.List>
+            {summary && (
+              <div className="selector-exceptions">
+                <span>Currently {summary}.</span>
+                <Button
+                  className="text-button"
+                  onClick={workspace.clearExceptions}
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </Select.Popup>
+        </Select.Positioner>
+      </Select.Portal>
+    </Select.Root>
   );
 }

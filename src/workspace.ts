@@ -267,9 +267,7 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
     },
     [selection],
   );
-  // Choosing a rule clears the exceptions, so None still means none.
-  const setSelection = useCallback((mode: Selection) => {
-    setMode(mode);
+  const clearExceptions = useCallback(() => {
     setConfig((previous) =>
       Object.fromEntries(
         Object.entries(previous).map(([path, settings]) => [
@@ -279,6 +277,14 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
       ),
     );
   }, []);
+  // Choosing a rule clears the exceptions, so None still means none.
+  const setSelection = useCallback(
+    (mode: Selection) => {
+      setMode(mode);
+      clearExceptions();
+    },
+    [clearExceptions],
+  );
 
   return {
     root,
@@ -294,5 +300,6 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
     configure,
     select,
     setSelection,
+    clearExceptions,
   };
 }

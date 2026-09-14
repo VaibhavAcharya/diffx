@@ -12,7 +12,7 @@ Closing a tab keeps it in a list of the ten most recently closed. The restore bu
 
 Settings apply everywhere and cover appearance (theme, unified or split, line wrapping, sidebar density and width), diffs (within-line highlighting, context lines per expansion), and discovery (search depth, directory budget, and folder names to skip). Discovery settings take effect on the next rescan. Each tab separately remembers its directory, its rule, and any repository whose base branch, comparison branch, or tick you changed.
 
-Which repositories are in a review is a rule plus exceptions. Changed follows the repositories that have changes; All and None are absolute. Ticking a repository overrides the rule for that one repository, in either direction, until you choose a rule again. Only the overrides are stored, so a workspace that gains a repository with changes picks it up on the next scan without being asked.
+Which repositories are in a review is a rule plus exceptions. Changed follows the repositories that have changes; All and None are absolute. Ticking a repository overrides the rule for that one repository, in either direction. Changing the rule clears the overrides, and Clear in the rule menu drops them without changing the rule. Only the overrides are stored, so a workspace that gains a repository with changes picks it up on the next scan without being asked.
 
 Skip these folders shows the full default list. Remove a name to include that folder in discovery, or add a folder name to skip it. Reset preferences restores all app defaults, including this list and the sidebar width, while keeping open tabs, recently closed tabs, and repository comparisons.
 

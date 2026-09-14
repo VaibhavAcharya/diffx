@@ -932,14 +932,29 @@ input:focus-visible {
 }
 
 .selector-popup {
-  width: 300px;
+  width: 280px;
   max-width: calc(100vw - 24px);
+  padding: 5px;
 }
-.selector-popup .segmented {
-  width: 100%;
+.selector-popup .option small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
 }
-.selector-popup .segmented button {
+.selector-exceptions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 8px 9px 3px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
+.selector-exceptions > span {
   flex: 1;
+  overflow-wrap: anywhere;
 }
 .selector-count {
   flex-shrink: 0;

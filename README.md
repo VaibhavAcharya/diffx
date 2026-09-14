@@ -31,7 +31,7 @@ You need Node.js 20.19 or newer and Git on your PATH. The command starts a local
 npx polydiff ~/Developer/my-projects
 ```
 
-The sidebar lists every repository it found. **Changed** follows the ones that have changes, and **All** and **None** are there when you want them. Tick a repository to keep it in or leave it out whatever the rule says; choosing a rule again clears those. Each repository carries its own base and comparison branch, and the ones left out keep theirs, so you can fix a wrong base before adding it back. Use the sidebar to jump between files, and the refresh button to rescan and reload changes.
+The sidebar lists every repository it found. **Changed** follows the ones that have changes, and **All** and **None** are there when you want them. Tick a repository to keep it in or leave it out whatever the rule says; changing the rule clears those, and so does Clear next to the summary. Each repository carries its own base and comparison branch, and the ones left out keep theirs, so you can fix a wrong base before adding it back. Use the sidebar to jump between files, and the refresh button to rescan and reload changes.
 
 ![Repository selection and independent branch comparisons, including a linked worktree](https://raw.githubusercontent.com/VaibhavAcharya/polydiff/main/docs/images/comparisons.png)
 
