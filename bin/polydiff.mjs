@@ -13,7 +13,7 @@ import * as db from "../server/db.mjs";
 const args = process.argv.slice(2);
 if (args.includes("--help")) {
   console.log(
-    "Usage: diffx [directory] [--no-open]\n\nBrowse changes across local Git repositories and worktrees.",
+    "Usage: polydiff [directory] [--no-open]\n\nBrowse changes across local Git repositories and worktrees.",
   );
   process.exit(0);
 }
@@ -80,7 +80,7 @@ const server = createServer(async (req, res) => {
     if (url.pathname.startsWith("/api/")) {
       if (req.headers.authorization !== `Bearer ${token}`)
         return json(403, {
-          error: "Invalid session. Open the URL printed by diffx.",
+          error: "Invalid session. Open the URL printed by polydiff.",
         });
       if (url.pathname === "/api/workspace") {
         const input = url.searchParams.get("path") || initialRoot;
@@ -156,7 +156,7 @@ const server = createServer(async (req, res) => {
 server.listen(0, "127.0.0.1", () => {
   origin = `http://127.0.0.1:${server.address().port}`;
   const url = `${origin}/#${token}`;
-  console.log(`diffx · ${initialRoot}\n${url}\nPress Ctrl+C to stop.`);
+  console.log(`polydiff · ${initialRoot}\n${url}\nPress Ctrl+C to stop.`);
   if (!args.includes("--no-open")) {
     const command =
       process.platform === "darwin"

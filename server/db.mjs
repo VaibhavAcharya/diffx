@@ -2,7 +2,8 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 
-const directory = process.env.DIFFX_HOME || path.join(os.homedir(), ".diffx");
+const directory =
+  process.env.POLYDIFF_HOME || path.join(os.homedir(), ".polydiff");
 const file = path.join(directory, "db.json");
 const recentLimit = 10;
 

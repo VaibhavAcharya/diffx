@@ -4,8 +4,8 @@ import { mkdtemp, readFile, writeFile, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-const home = await mkdtemp(path.join(os.tmpdir(), "diffx-db-"));
-process.env.DIFFX_HOME = home;
+const home = await mkdtemp(path.join(os.tmpdir(), "polydiff-db-"));
+process.env.POLYDIFF_HOME = home;
 const db = await import("./db.mjs");
 const file = path.join(home, "db.json");
 const empty = db.sanitize(null);

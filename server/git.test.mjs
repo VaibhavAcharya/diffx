@@ -7,13 +7,13 @@ import { git, scan, diff, fileContents } from "./git.mjs";
 import { parsePatchFiles } from "@pierre/diffs";
 
 test("discovers cross-repo worktrees and compares feature changes without changing Git state", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "diffx-test-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "polydiff-test-"));
   try {
     const repo = path.join(root, "build");
     await mkdir(repo);
     await git(repo, ["init", "-b", "main"]);
-    await git(repo, ["config", "user.name", "Diffx Test"]);
-    await git(repo, ["config", "user.email", "diffx@example.invalid"]);
+    await git(repo, ["config", "user.name", "Polydiff Test"]);
+    await git(repo, ["config", "user.email", "polydiff@example.invalid"]);
     await writeFile(path.join(repo, "tracked.txt"), "base\n");
     await git(repo, ["add", "."]);
     await git(repo, ["-c", "commit.gpgsign=false", "commit", "-m", "base"]);
@@ -115,13 +115,13 @@ test("discovers cross-repo worktrees and compares feature changes without changi
 });
 
 test("separates local from remote branches and ignores bare remote refs", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "diffx-test-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "polydiff-test-"));
   try {
     const repo = path.join(root, "buildbot");
     await mkdir(repo);
     await git(repo, ["init", "-b", "main"]);
-    await git(repo, ["config", "user.name", "Diffx Test"]);
-    await git(repo, ["config", "user.email", "diffx@example.invalid"]);
+    await git(repo, ["config", "user.name", "Polydiff Test"]);
+    await git(repo, ["config", "user.email", "polydiff@example.invalid"]);
     await writeFile(path.join(repo, "tracked.txt"), "base\n");
     await git(repo, ["add", "."]);
     await git(repo, ["-c", "commit.gpgsign=false", "commit", "-m", "base"]);
@@ -145,7 +145,7 @@ test("separates local from remote branches and ignores bare remote refs", async 
 });
 
 test("honours the configured search depth, budget, and extra skipped folders", async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "diffx-limits-"));
+  const root = await mkdtemp(path.join(os.tmpdir(), "polydiff-limits-"));
   try {
     const deep = path.join(root, "a", "b", "c", "repo");
     const skipped = path.join(root, "sandbox", "repo");

@@ -15,7 +15,7 @@ export async function api<T>(
     if (error instanceof DOMException && error.name === "AbortError")
       throw error;
     throw new Error(
-      "The diffx server stopped responding. Is it still running?",
+      "The polydiff server stopped responding. Is it still running?",
       { cause: error },
     );
   }

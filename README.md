@@ -1,10 +1,10 @@
-# diffx
+# polydiff
 
-[![checks](https://github.com/VaibhavAcharya/diffx/actions/workflows/checks.yml/badge.svg)](https://github.com/VaibhavAcharya/diffx/actions/workflows/checks.yml)
+[![checks](https://github.com/VaibhavAcharya/polydiff/actions/workflows/checks.yml/badge.svg)](https://github.com/VaibhavAcharya/polydiff/actions/workflows/checks.yml)
 
 Review uncommitted and unmerged changes across every Git repository and worktree in a directory, in your browser.
 
-If your work lives in one folder full of repositories and feature worktrees, diffx shows what changed in all of them at once, without checking anything out.
+If your work lives in one folder full of repositories and feature worktrees, polydiff shows what changed in all of them at once, without checking anything out.
 
 ```sh
 npx polydiff ~/Developer
@@ -12,11 +12,9 @@ npx polydiff ~/Developer
 
 That scans the directory, starts a local server, and opens a browser. Needs Node.js 20.19 or newer and Git on your PATH. Nothing leaves your machine.
 
-The package is published as `polydiff`, because npm rejects `diffx` as too close to the existing `diff` package. The command it installs is still `diffx`.
-
 Not on npm yet. Until the first release, run it from a clone as described under [Development](#development).
 
-With no directory, diffx restores the tabs from your last session and falls back to the current directory the first time. Pass `--no-open` to print the URL instead of opening it. Stop the server with Ctrl+C.
+With no directory, polydiff restores the tabs from your last session and falls back to the current directory the first time. Pass `--no-open` to print the URL instead of opening it. Stop the server with Ctrl+C.
 
 ## What you get
 
@@ -26,7 +24,7 @@ Selection is a mode rather than a one-off action. Changed follows whichever repo
 
 ## Tabs
 
-Work is organised into tabs. The `+` button opens the operating system's own folder chooser (`osascript` on macOS, `zenity` or `kdialog` on Linux, a PowerShell folder dialog on Windows) and always opens a new tab, so the same directory can be open several times with different repositories and comparisons in each. Right-click a tab to duplicate it, which copies its settings. Running `diffx <directory>` reuses a tab already open on that directory instead of adding another.
+Work is organised into tabs. The `+` button opens the operating system's own folder chooser (`osascript` on macOS, `zenity` or `kdialog` on Linux, a PowerShell folder dialog on Windows) and always opens a new tab, so the same directory can be open several times with different repositories and comparisons in each. Right-click a tab to duplicate it, which copies its settings. Running `polydiff <directory>` reuses a tab already open on that directory instead of adding another.
 
 Closing a tab keeps it in a list of the ten most recently closed. The restore button at the right of the tab bar brings the last one back with its settings intact.
 
@@ -36,7 +34,7 @@ Settings apply everywhere and cover appearance (theme, unified or split, line wr
 
 Search text, which files are collapsed, and scroll position are deliberately not stored, because restoring them is more surprising than retyping them.
 
-State lives in `~/.diffx/db.json`, written atomically and debounced; set `DIFFX_HOME` to store it elsewhere. Only values that differ from the defaults are written, so the file stays readable. A file that cannot be parsed is moved aside to `db.json.corrupt` and a fresh one is started. Files written by an earlier version are migrated on first read.
+State lives in `~/.polydiff/db.json`, written atomically and debounced; set `POLYDIFF_HOME` to store it elsewhere. Only values that differ from the defaults are written, so the file stays readable. A file that cannot be parsed is moved aside to `db.json.corrupt` and a fresh one is started. Files written by an earlier version are migrated on first read.
 
 ```json
 {

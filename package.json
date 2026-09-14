@@ -16,11 +16,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VaibhavAcharya/diffx.git"
+    "url": "git+https://github.com/VaibhavAcharya/polydiff.git"
   },
-  "homepage": "https://github.com/VaibhavAcharya/diffx#readme",
+  "homepage": "https://github.com/VaibhavAcharya/polydiff#readme",
   "bugs": {
-    "url": "https://github.com/VaibhavAcharya/diffx/issues"
+    "url": "https://github.com/VaibhavAcharya/polydiff/issues"
   },
   "type": "module",
   "engines": {
@@ -28,7 +28,7 @@
   },
   "packageManager": "pnpm@11.18.0",
   "bin": {
-    "diffx": "bin/diffx.mjs"
+    "polydiff": "bin/polydiff.mjs"
   },
   "files": [
     "bin",
@@ -41,7 +41,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "start": "node bin/diffx.mjs",
+    "start": "node bin/polydiff.mjs",
     "test": "node --test \"server/*.test.mjs\"",
     "prepack": "pnpm build",
     "build": "tsc -b && vite build",

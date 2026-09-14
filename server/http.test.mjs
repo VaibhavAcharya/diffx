@@ -7,13 +7,13 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const cli = fileURLToPath(new URL("../bin/diffx.mjs", import.meta.url));
+const cli = fileURLToPath(new URL("../bin/polydiff.mjs", import.meta.url));
 
 async function start() {
-  const home = await mkdtemp(path.join(os.tmpdir(), "diffx-home-"));
-  const workspace = await mkdtemp(path.join(os.tmpdir(), "diffx-ws-"));
+  const home = await mkdtemp(path.join(os.tmpdir(), "polydiff-home-"));
+  const workspace = await mkdtemp(path.join(os.tmpdir(), "polydiff-ws-"));
   const child = spawn(process.execPath, [cli, workspace, "--no-open"], {
-    env: { ...process.env, DIFFX_HOME: home },
+    env: { ...process.env, POLYDIFF_HOME: home },
     stdio: ["ignore", "pipe", "pipe"],
   });
   const clean = async () => {
@@ -25,7 +25,7 @@ async function start() {
     const server = await new Promise((resolve, reject) => {
       let output = "";
       const timer = setTimeout(
-        () => reject(new Error(`diffx did not start. Output: ${output}`)),
+        () => reject(new Error(`polydiff did not start. Output: ${output}`)),
         30000,
       );
       const give = (error) => {
@@ -44,7 +44,7 @@ async function start() {
       child.on("exit", (code) =>
         give(
           new Error(
-            `diffx exited with ${code}. Run pnpm build first. Output: ${output}`,
+            `polydiff exited with ${code}. Run pnpm build first. Output: ${output}`,
           ),
         ),
       );
