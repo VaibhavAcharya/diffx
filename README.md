@@ -7,10 +7,12 @@ Review uncommitted and unmerged changes across every Git repository and worktree
 If your work lives in one folder full of repositories and feature worktrees, diffx shows what changed in all of them at once, without checking anything out.
 
 ```sh
-npx diffx ~/Developer
+npx repodiffx ~/Developer
 ```
 
 That scans the directory, starts a local server, and opens a browser. Needs Node.js 20.19 or newer and Git on your PATH. Nothing leaves your machine.
+
+The package is published as `repodiffx`, because npm rejects `diffx` as too close to the existing `diff` package. The command it installs is still `diffx`.
 
 Not on npm yet. Until the first release, run it from a clone as described under [Development](#development).
 
