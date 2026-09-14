@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1](https://github.com/VaibhavAcharya/polydiff/compare/v0.1.0...v0.1.1) (2026-09-14)
+
+
+### Documentation
+
+* add the sponsor button ([6e08dbe](https://github.com/VaibhavAcharya/polydiff/commit/6e08dbe9ef1be7769e382d67e3c63863e2d847cd))
+* describe branch protection and the release approval step ([0f051b6](https://github.com/VaibhavAcharya/polydiff/commit/0f051b6af9fbbe731078f162566474132b36f6b1))
+
 ## 0.1.0 (2026-09-14)
 
 
