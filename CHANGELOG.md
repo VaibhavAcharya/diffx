@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/VaibhavAcharya/polydiff/compare/v0.1.2...v0.2.0) (2026-09-14)
+
+
+### Features
+
+* editable skip list, resizable sidebar, and preferences reset ([a6fc6b7](https://github.com/VaibhavAcharya/polydiff/commit/a6fc6b72a40496dfa83056a24a0f5de467f83c81))
+
 ## [0.1.2](https://github.com/VaibhavAcharya/polydiff/compare/v0.1.1...v0.1.2) (2026-09-14)
 
 

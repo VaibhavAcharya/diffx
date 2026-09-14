@@ -1,6 +1,6 @@
 {
   "name": "polydiff",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Review changes across repos and worktrees in one local workspace.",
   "license": "MIT",
   "author": "Vaibhav Acharya",
