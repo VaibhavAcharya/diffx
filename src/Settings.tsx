@@ -160,6 +160,7 @@ export function SettingsDialog({
             <Row label="Wrap long lines">
               <Switch.Root
                 className="switch"
+                aria-label="Wrap long lines"
                 checked={settings.wrap}
                 onCheckedChange={(wrap) => onChange({ wrap })}
               >

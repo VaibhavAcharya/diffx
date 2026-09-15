@@ -10,9 +10,9 @@ Closing a tab keeps it in a list of the ten most recently closed. The restore bu
 
 ## Settings and stored state
 
-Settings apply everywhere and cover appearance (theme, unified or split, line wrapping, sidebar density and width), diffs (within-line highlighting, context lines per expansion), and discovery (search depth, directory budget, and folder names to skip). Discovery settings take effect on the next rescan. Each tab separately remembers its directory, its rule, and any repository whose base branch, comparison branch, or tick you changed.
+Settings apply everywhere and cover appearance (theme, unified or split, line wrapping, sidebar density and width), diffs (within-line highlighting, context lines per expansion), and discovery (search depth, directory budget, and folder names to skip). Discovery settings take effect on the next rescan. Each tab separately remembers its directory and any repository whose base branch, comparison branch, or tick you changed.
 
-Which repositories are in a review is a rule plus exceptions. Changed follows the repositories that have changes; All and None are absolute. Ticking a repository overrides the rule for that one repository, in either direction. Changing the rule clears the overrides, and Clear in the rule menu drops them without changing the rule. Only the overrides are stored, so a workspace that gains a repository with changes picks it up on the next scan without being asked.
+New tabs start with no repositories selected. Every discovered repository appears in the sidebar, and ticking one loads its changes and opens its file list. Unticking it cancels its pending diff request and removes it from the review. Saved selections are restored when you reopen a tab; newly discovered repositories remain unticked. Comparison branches are kept for unticked repositories. Search matches repository names and loaded changed files.
 
 Skip these folders shows the full default list. Remove a name to include that folder in discovery, or add a folder name to skip it. Reset preferences restores all app defaults, including this list and the sidebar width, while keeping open tabs, recently closed tabs, and repository comparisons.
 
@@ -22,11 +22,11 @@ Repositories in the sidebar and files in the review pane both open folded. Click
 
 Search text, which files are expanded, and scroll position are deliberately not stored, because restoring them is more surprising than retyping them.
 
-State lives in `~/.polydiff/db.json`, written atomically and debounced; set `POLYDIFF_HOME` to store it elsewhere. Only values that differ from the defaults are written, so the file stays readable. A file that cannot be parsed is moved aside to `db.json.corrupt` and a fresh one is started. Files written by an earlier version are migrated on first read.
+State lives in `~/.polydiff/db.json`, written atomically and debounced; set `POLYDIFF_HOME` to store it elsewhere. Only values that differ from the defaults are written, so the file stays readable. A file that cannot be parsed is moved aside to `db.json.corrupt` and a fresh one is started. Files written by an earlier version are migrated when loaded and saved in the current format on the next write.
 
 ```json
 {
-  "version": 4,
+  "version": 5,
   "revision": 48,
   "settings": { "layout": "split" },
   "activeTab": "tmu0as73o",
@@ -34,9 +34,11 @@ State lives in `~/.polydiff/db.json`, written atomically and debounced; set `POL
     {
       "id": "tmu0as73o",
       "root": "/Users/you/Developer/netlify",
-      "selection": "changed",
       "repos": {
-        "/Users/you/Developer/netlify/build": { "target": "release" }
+        "/Users/you/Developer/netlify/build": {
+          "target": "release",
+          "selected": true
+        }
       }
     }
   ],
@@ -44,13 +46,19 @@ State lives in `~/.polydiff/db.json`, written atomically and debounced; set `POL
 }
 ```
 
-The browser sends one command per change rather than the whole document, and the server applies it to whatever is on disk. Repository settings merge, so a repository missing from the latest scan keeps what you gave it, including its override, and two windows editing different tabs do not overwrite each other.
+The browser sends one command per change rather than the whole document, and the server applies it to whatever is on disk. Repository settings merge, so a repository missing from the latest scan keeps what you gave it, including its selection, and two windows editing different tabs do not overwrite each other.
 
-Files written before version 4 had a separate custom selection mode. Such a tab becomes Changed with every tick kept as an override, which includes the same repositories it did before. A tick stored under All or None never applied to anything and is dropped. Because the file is rewritten on first read, running an older polydiff afterwards loses those overrides.
+Version 5 removes automatic selection rules. Migration preserves explicit selections and comparison branches in open and recently closed tabs; repositories previously included only by Changed or All now start unticked. Before version 4, ticks only applied in custom mode (or version 1), so inactive ticks from other modes are discarded.
 
 ## Comparisons
 
-The default view compares the merge base of the base branch and HEAD with the working tree. It includes committed feature changes, staged and unstaged changes as their combined current content, and untracked files. Selecting a different target branch shows that branch's committed changes. No checkout, fetch, staging, or file edits are performed.
+Select and expand a repository to show its comparison button above the file list. Branch comparisons show the review branch versus the base, with “Includes uncommitted edits” or “Committed only” underneath. Local-only review shows “Uncommitted changes.” Unselected and folded repositories hide this control; the main review pane keeps the full comparison summary. Click the button and choose **Changes** first:
+
+- **Committed + uncommitted** (default) includes committed changes since the current branch diverged from the base, staged and unstaged edits as their combined current content, and untracked files. The review branch is the current checkout; you can choose the base branch.
+- **Committed only** shows committed changes since the review branch diverged from the base. You can choose any local or remote review branch and base branch. Local edits are excluded.
+- **Uncommitted only** compares local files with the latest commit of the current checkout. It includes staged and unstaged edits as their combined current content, and untracked files. Both branch pickers are hidden; the saved base is restored when you switch back to a branch comparison.
+
+Switching from committed review of another branch to a scope containing uncommitted edits switches the review to the current checkout. Switching back to committed review starts with that checkout; choose another review branch if needed. Existing saved comparisons retain their meaning. No checkout, fetch, staging, or file edits are performed.
 
 The base defaults to origin's default branch when available, then main/master, then HEAD. You can override it per repository. Remote branches reflect the refs already present locally.
 
