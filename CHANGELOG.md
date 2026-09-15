@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/VaibhavAcharya/polydiff/compare/v0.4.0...v0.5.0) (2026-09-15)
+
+
+### Features
+
+* watch repositories for changes and track review progress ([#13](https://github.com/VaibhavAcharya/polydiff/issues/13)) ([84d637d](https://github.com/VaibhavAcharya/polydiff/commit/84d637dc3974dd94b12be0919c5b725fb7700a7a))
+
 ## [0.4.0](https://github.com/VaibhavAcharya/polydiff/compare/v0.3.0...v0.4.0) (2026-09-15)
 
 
