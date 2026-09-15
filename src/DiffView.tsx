@@ -1,26 +1,111 @@
 import { useCallback, useRef, useState } from "react";
+import { Menu } from "@base-ui/react/menu";
 import { Popover } from "@base-ui/react/popover";
 import { FileDiff } from "@pierre/diffs/react";
 import type { FileDiffMetadata, FileDiffLoadedFiles } from "@pierre/diffs";
 import {
   CaretRightIcon,
+  CheckCircleIcon,
+  CopyIcon,
+  DotsThreeIcon,
   FileCodeIcon,
+  PencilSimpleIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { api } from "./api";
 import { stats, fileId, type Entry } from "./workspace";
+import { editors, editorUrl, joinPath } from "./editor";
 import type { Settings } from "./store";
 
+function FileActions({
+  repo,
+  name,
+  line,
+  editor,
+}: {
+  repo: string;
+  name: string;
+  line: number;
+  editor: Settings["editor"];
+}) {
+  const [copied, setCopied] = useState("");
+  const absolute = joinPath(repo, name);
+  const copy = (label: string, value: string) => {
+    void navigator.clipboard?.writeText(value).then(
+      () => {
+        setCopied(label);
+        setTimeout(() => setCopied(""), 1500);
+      },
+      () => setCopied(""),
+    );
+  };
+  const open = editors.find((option) => option.value === editor);
+  return (
+    <Menu.Root>
+      <Menu.Trigger
+        className="icon-button file-actions"
+        aria-label={`Actions for ${name}`}
+      >
+        <DotsThreeIcon weight="bold" />
+      </Menu.Trigger>
+      <Menu.Portal>
+        <Menu.Positioner side="bottom" align="end" className="floating">
+          <Menu.Popup className="popup menu">
+            <Menu.Item
+              className="menu-item"
+              onClick={() => copy("path", name)}
+              closeOnClick={false}
+            >
+              <CopyIcon />
+              {copied === "path" ? "Copied" : "Copy repository path"}
+            </Menu.Item>
+            <Menu.Item
+              className="menu-item"
+              onClick={() => copy("absolute", absolute)}
+              closeOnClick={false}
+            >
+              <CopyIcon />
+              {copied === "absolute" ? "Copied" : "Copy full path"}
+            </Menu.Item>
+            {open && (
+              <Menu.Item
+                className="menu-item"
+                onClick={() => {
+                  window.location.href = editorUrl(open.value, absolute, line);
+                }}
+              >
+                <PencilSimpleIcon />
+                Open in {open.label}
+              </Menu.Item>
+            )}
+          </Menu.Popup>
+        </Menu.Positioner>
+      </Menu.Portal>
+    </Menu.Root>
+  );
+}
 export function DiffFile({
   entry,
   file,
   settings,
+  binary,
+  cursor,
+  highlight,
+  reviewed,
+  changedSinceReview,
+  onReview,
   collapsed,
   onCollapse,
 }: {
   entry: Entry;
   file: FileDiffMetadata;
   settings: Settings;
+  binary: boolean;
+  cursor: boolean;
+  highlight?: { line: number; side: "additions" | "deletions" };
+  reviewed: boolean;
+  changedSinceReview: boolean;
+  onReview: (value: boolean) => void;
   collapsed: boolean;
   onCollapse: (value: boolean) => void;
 }) {
@@ -29,6 +114,8 @@ export function DiffFile({
   const anchor = useRef<Element | null>(null);
   const panel = useRef<HTMLDivElement | null>(null);
   const total = stats([file]);
+  const modeChanged =
+    !!file.mode && !!file.prevMode && file.mode !== file.prevMode;
   const loadDiffFiles = useCallback(
     async (metadata: FileDiffMetadata): Promise<FileDiffLoadedFiles> => {
       setContextError("");
@@ -54,18 +141,34 @@ export function DiffFile({
     [entry.repo.path, entry.data],
   );
   return (
-    <div className="diff-file" id={fileId(entry.repo.path, file.name)}>
-      <button
-        className="file-heading"
-        aria-expanded={!collapsed}
-        onClick={() => onCollapse(!collapsed)}
-      >
-        <CaretRightIcon className="disclosure" />
-        <FileCodeIcon />
-        <span className="file-path">
-          {file.prevName && <span className="muted">{file.prevName} → </span>}
-          {file.name}
-        </span>
+    <div
+      className="diff-file"
+      id={fileId(entry.repo.path, file.name)}
+      data-reviewed={reviewed || undefined}
+      data-cursor={cursor || undefined}
+    >
+      <div className="file-heading">
+        <button
+          className="file-toggle"
+          aria-expanded={!collapsed}
+          onClick={() => onCollapse(!collapsed)}
+        >
+          <CaretRightIcon className="disclosure" />
+          <FileCodeIcon />
+          <span className="file-path">
+            {file.prevName && <span className="muted">{file.prevName} → </span>}
+            {file.name}
+          </span>
+        </button>
+        {changedSinceReview && (
+          <span className="file-badge">Changed since you reviewed it</span>
+        )}
+        {modeChanged && (
+          <span className="file-badge" title="File mode">
+            {file.prevMode} → {file.mode}
+          </span>
+        )}
+        {binary && <span className="file-badge">Binary</span>}
         <span className="file-status">
           {file.type === "new"
             ? "Added"
@@ -81,7 +184,26 @@ export function DiffFile({
             {total.removed ? `−${total.removed}` : ""}
           </span>
         </span>
-      </button>
+        <FileActions
+          repo={entry.repo.path}
+          name={file.name}
+          line={file.hunks[0]?.additionStart || 1}
+          editor={settings.editor}
+        />
+        <button
+          className="review-toggle"
+          aria-pressed={reviewed}
+          aria-label={
+            reviewed
+              ? `Mark ${file.name} unreviewed`
+              : `Mark ${file.name} reviewed`
+          }
+          onClick={() => onReview(!reviewed)}
+        >
+          <CheckCircleIcon weight={reviewed ? "fill" : "duotone"} />
+          <span>Reviewed</span>
+        </button>
+      </div>
       <div
         className="file-panel"
         data-collapsed={collapsed || undefined}
@@ -94,6 +216,13 @@ export function DiffFile({
         {file.hunks.length ? (
           <FileDiff
             fileDiff={file}
+            selectedLines={
+              highlight && {
+                start: highlight.line,
+                end: highlight.line,
+                side: highlight.side,
+              }
+            }
             options={{
               theme: { light: "pierre-light", dark: "pierre-dark" },
               themeType: settings.theme,
@@ -112,7 +241,11 @@ export function DiffFile({
             <p className="file-note">
               {file.type === "rename-pure"
                 ? "File renamed without content changes."
-                : "No text hunks. Binary content, an empty file, or a file mode change."}
+                : binary
+                  ? `Binary file ${file.type === "new" ? "added" : file.type === "deleted" ? "deleted" : "changed"}. Its contents are not shown.`
+                  : modeChanged
+                    ? `File mode changed from ${file.prevMode} to ${file.mode}, with no change to its contents.`
+                    : "No text hunks. An empty file, or a change Git records without content."}
             </p>
           )
         )}

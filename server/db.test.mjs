@@ -14,7 +14,7 @@ test.after(() => rm(home, { recursive: true, force: true }));
 
 test("returns a blank database with default settings", async () => {
   assert.deepEqual(await db.read(), {
-    version: 5,
+    version: 6,
     revision: 0,
     settings: db.defaults,
     activeTab: null,
@@ -30,7 +30,7 @@ test("round trips a tab and stores only settings that differ", async () => {
     repos: { "/tmp/workspace/build": { base: "main", selected: true } },
   };
   await db.write({
-    version: 5,
+    version: 6,
     activeTab: "t1",
     tabs: [tab],
     settings: { wrap: true },
@@ -95,7 +95,7 @@ test("retires the custom mode and keeps only the ticks that counted", () => {
     },
   ];
   const state = db.sanitize({ version: 3, tabs, recent: [] });
-  assert.equal(state.version, 5);
+  assert.equal(state.version, 6);
   assert.equal(state.tabs[0].selection, undefined);
   assert.deepEqual(state.tabs[0].repos, {
     "/tmp/a/two": { base: "main", selected: true },
@@ -156,7 +156,7 @@ test("migrates additive exclusions and retires automatic selection", () => {
     settings: { ignore: ["target", "node_modules"] },
     tabs: [{ id: "a", root: "/tmp/a", selection: "all" }],
   });
-  assert.equal(state.version, 5);
+  assert.equal(state.version, 6);
   assert.deepEqual(state.settings.ignore, [...db.defaults.ignore, "target"]);
   assert.equal(state.tabs[0].selection, undefined);
   const custom = Array.from({ length: 100 }, (_, index) => `cache-${index}`);
@@ -348,4 +348,45 @@ test("version 4 migration preserves explicit selections in open and closed tabs"
     });
   }
   assert.deepEqual(db.sanitize(state), state);
+});
+
+test("a custom tab name survives a round trip and resets to nothing", () => {
+  let state = db.apply(empty, { op: "open", root: "/tmp/a" });
+  const id = state.activeTab;
+  state = db.apply(state, { op: "rename", id, name: "  API   migration\n" });
+  assert.equal(db.sanitize(state).tabs[0].name, "API migration");
+  const duplicated = db.apply(state, { op: "duplicate", id });
+  assert.equal(duplicated.tabs[1].name, "API migration");
+  const cleared = db.sanitize(db.apply(state, { op: "rename", id, name: " " }));
+  assert.equal("name" in cleared.tabs[0], false);
+  const long = db.sanitize(
+    db.apply(state, { op: "rename", id, name: "n".repeat(120) }),
+  );
+  assert.equal(long.tabs[0].name.length, 64);
+});
+
+test("moving a tab reorders the list and ignores positions outside it", () => {
+  const order = (state) => state.tabs.map((tab) => tab.root).join(" ");
+  const start = {
+    ...empty,
+    activeTab: "a",
+    tabs: ["a", "b", "c"].map((id) => ({ id, root: `/tmp/${id}`, repos: {} })),
+  };
+  assert.equal(
+    order(db.apply(start, { op: "move", id: "c", index: 0 })),
+    "/tmp/c /tmp/a /tmp/b",
+  );
+  assert.equal(
+    order(db.apply(start, { op: "move", id: "a", index: 9 })),
+    "/tmp/b /tmp/c /tmp/a",
+  );
+  assert.equal(
+    order(db.apply(start, { op: "move", id: "b", index: -4 })),
+    "/tmp/b /tmp/a /tmp/c",
+  );
+  assert.deepEqual(db.apply(start, { op: "move", id: "b", index: 1 }), start);
+  assert.deepEqual(
+    db.apply(start, { op: "move", id: "missing", index: 0 }),
+    start,
+  );
 });

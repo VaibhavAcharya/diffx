@@ -14,6 +14,7 @@ import {
   SlidersHorizontalIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import { editors } from "./editor";
 import type { Settings } from "./store";
 import { version } from "../package.json";
 
@@ -184,6 +185,24 @@ export function SettingsDialog({
             </Row>
           </Fieldset.Root>
           <Fieldset.Root className="settings-group">
+            <Fieldset.Legend className="settings-legend">
+              Refreshing
+            </Fieldset.Legend>
+            <Row
+              label="Reload when repositories change"
+              hint="Watches the repositories in the review while the tab is in front"
+            >
+              <Switch.Root
+                className="switch"
+                aria-label="Reload when repositories change"
+                checked={settings.autoRefresh}
+                onCheckedChange={(autoRefresh) => onChange({ autoRefresh })}
+              >
+                <Switch.Thumb className="switch-thumb" />
+              </Switch.Root>
+            </Row>
+          </Fieldset.Root>
+          <Fieldset.Root className="settings-group">
             <Fieldset.Legend className="settings-legend">Diffs</Fieldset.Legend>
             <Row label="Highlight changes within a line">
               <Choice
@@ -209,6 +228,31 @@ export function SettingsDialog({
                 step={5}
                 onChange={(expansionLines) => onChange({ expansionLines })}
               />
+            </Row>
+          </Fieldset.Root>
+          <Fieldset.Root className="settings-group">
+            <Fieldset.Legend className="settings-legend">
+              Opening files
+            </Fieldset.Legend>
+            <Row
+              label="Editor"
+              hint="Where a file's Open action sends it, through the editor's own URL"
+            >
+              <select
+                className="input select"
+                aria-label="Editor"
+                value={settings.editor}
+                onChange={(event) =>
+                  onChange({ editor: event.target.value as Settings["editor"] })
+                }
+              >
+                <option value="none">No editor</option>
+                {editors.map((editor) => (
+                  <option key={editor.value} value={editor.value}>
+                    {editor.label}
+                  </option>
+                ))}
+              </select>
             </Row>
           </Fieldset.Root>
           <Fieldset.Root className="settings-group">

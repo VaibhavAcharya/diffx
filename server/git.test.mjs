@@ -3,7 +3,14 @@ import assert from "node:assert/strict";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { git, scan, diff, fileContents, defaultIgnored } from "./git.mjs";
+import {
+  git,
+  scan,
+  diff,
+  fileContents,
+  signature,
+  defaultIgnored,
+} from "./git.mjs";
 import { parsePatchFiles } from "@pierre/diffs";
 
 test("allows removing default folder exclusions", async () => {
@@ -208,6 +215,47 @@ test("honours the configured search depth, budget, and extra skipped folders", a
 
     const capped = await scan(root, { budget: 2 });
     assert.match(capped.warnings.at(-1), /Stopped after 2 directories/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("the change signature follows what each comparison actually shows", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "polydiff-signature-"));
+  const repo = path.join(root, "repo");
+  try {
+    await mkdir(repo);
+    await git(repo, ["init", "-b", "main"]);
+    await git(repo, ["config", "user.name", "Polydiff Test"]);
+    await git(repo, ["config", "user.email", "polydiff@example.invalid"]);
+    await writeFile(path.join(repo, "tracked.txt"), "base\n");
+    await git(repo, ["add", "."]);
+    await git(repo, ["-c", "commit.gpgsign=false", "commit", "-m", "base"]);
+    const stamp = (target) => signature(repo, "main", target);
+    const working = await stamp("@working");
+    const committed = await stamp("HEAD");
+    assert.deepEqual(await stamp("@working"), working);
+
+    await writeFile(path.join(repo, "tracked.txt"), "edited\n");
+    const edited = await stamp("@working");
+    assert.notDeepEqual(edited, working);
+    // An edit of the same length still moves the file's timestamp.
+    await writeFile(path.join(repo, "tracked.txt"), "EDITED\n");
+    assert.notDeepEqual(await stamp("@working"), edited);
+    // Committed review ignores the working tree until something is committed.
+    assert.deepEqual(await stamp("HEAD"), committed);
+
+    await writeFile(path.join(repo, "untracked.txt"), "new\n");
+    assert.notDeepEqual(await stamp("@working"), edited);
+    await git(repo, ["add", "."]);
+    await git(repo, ["-c", "commit.gpgsign=false", "commit", "-m", "more"]);
+    assert.notDeepEqual(await stamp("HEAD"), committed);
+    assert.deepEqual(
+      await stamp("@working"),
+      await diff(repo, "main", "@working").then((changes) => ({
+        signature: changes.signature,
+      })),
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -6,7 +6,7 @@ import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import os from "node:os";
-import { scan, diff, fileContents } from "../server/git.mjs";
+import { scan, diff, fileContents, signature } from "../server/git.mjs";
 import { chooseDirectory } from "../server/picker.mjs";
 import * as db from "../server/db.mjs";
 
@@ -110,6 +110,19 @@ const server = createServer(async (req, res) => {
         return json(
           200,
           await diff(
+            repo,
+            url.searchParams.get("base") || "HEAD",
+            url.searchParams.get("target") || "@working",
+          ),
+        );
+      }
+      if (url.pathname === "/api/signature") {
+        const repo = await realpath(
+          url.searchParams.get("repo") || initialRoot,
+        );
+        return json(
+          200,
+          await signature(
             repo,
             url.searchParams.get("base") || "HEAD",
             url.searchParams.get("target") || "@working",
