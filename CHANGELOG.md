@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/VaibhavAcharya/polydiff/compare/v0.3.0...v0.4.0) (2026-09-15)
+
+
+### Features
+
+* clarify repository comparison scopes ([#11](https://github.com/VaibhavAcharya/polydiff/issues/11)) ([d02f503](https://github.com/VaibhavAcharya/polydiff/commit/d02f503b97c2e32c64280a8237d0aa0717052dcc))
+
 ## [0.3.0](https://github.com/VaibhavAcharya/polydiff/compare/v0.2.0...v0.3.0) (2026-09-14)
 
 
