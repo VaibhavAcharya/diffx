@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { Button } from "@base-ui/react/button";
 import { Checkbox } from "@base-ui/react/checkbox";
 import { Collapsible } from "@base-ui/react/collapsible";
@@ -17,32 +17,92 @@ import {
   ArrowsClockwiseIcon,
   CaretRightIcon,
   CheckIcon,
+  CheckCircleIcon,
   FoldersIcon,
+  ListChecksIcon,
   MagnifyingGlassIcon,
   WarningCircleIcon,
+  XIcon,
 } from "@phosphor-icons/react";
 import { flattenEmptyDirectories } from "./order";
 import { IconButton } from "./ui";
 import { ComparisonPicker } from "./ComparisonPicker";
-import { stats, type Entry, type useWorkspace } from "./workspace";
+import { stats, type useWorkspace } from "./workspace";
+import type { Filter, View } from "./filter";
 
 type WorkspaceState = ReturnType<typeof useWorkspace>;
+type Watch = WorkspaceState["watch"];
 type Navigate = (repo: string, file?: string) => void;
 // The tallest a single repository's tree grows before it scrolls on its own.
 const maxVisibleTreeRows = 20;
 
+// A worktree sits under its repository, so its own row only needs the part of
+// the path that is not the repository it belongs to.
+function repoLabel(repo: View["entry"]["repo"]) {
+  if (!repo.parentName) return repo.name;
+  const suffix = repo.name.startsWith(`${repo.parentName}/`)
+    ? repo.name.slice(repo.parentName.length + 1)
+    : repo.name;
+  return suffix.replace(/^\.worktrees\//, "");
+}
+function since(from: number, now: number) {
+  const seconds = Math.max(0, Math.round((now - from) / 1000));
+  if (seconds < 45) return "just now";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  return `${Math.round(minutes / 60)} h ago`;
+}
+function WatchStatus({
+  watch,
+  onToggle,
+}: {
+  watch: Watch;
+  onToggle: (value: boolean) => void;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!watch.refreshedAt) return;
+    const timer = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(timer);
+  }, [watch.refreshedAt]);
+  const state = !watch.on
+    ? "off"
+    : watch.paused
+      ? "paused"
+      : watch.checking
+        ? "checking"
+        : "watching";
+  const label = !watch.on
+    ? "Auto-refresh off"
+    : watch.paused
+      ? "Paused while this tab is in the background"
+      : watch.checking
+        ? "Checking for changes…"
+        : watch.refreshedAt
+          ? `Refreshed ${since(watch.refreshedAt, now)}`
+          : "Watching for changes";
+  return (
+    <p className="watch-status" data-state={state}>
+      <span className="watch-dot" />
+      <span className="watch-label">{label}</span>
+      <Button className="text-button" onClick={() => onToggle(!watch.on)}>
+        {watch.on ? "Turn off" : "Turn on"}
+      </Button>
+    </p>
+  );
+}
 function ChangedTree({
-  entry,
+  view,
   search,
   density,
   navigate,
 }: {
-  entry: Entry;
+  view: View;
   search: string;
   density: FileTreeDensityKeyword;
   navigate: Navigate;
 }) {
-  const files = entry.data?.files || [];
+  const files = view.files;
   const statuses: GitStatusEntry[] = files.map((file) => ({
     path: file.name,
     status:
@@ -77,7 +137,7 @@ function ChangedTree({
     `,
     onSelectionChange: (paths) => {
       if (paths[0] && files.some((file) => file.name === paths[0]))
-        navigate(entry.repo.path, paths[0]);
+        navigate(view.entry.repo.path, paths[0]);
     },
   });
   useEffect(() => {
@@ -94,24 +154,27 @@ function ChangedTree({
   );
 }
 function RepoRow({
-  entry,
+  view,
   search,
   density,
   workspace,
   navigate,
 }: {
-  entry: Entry;
+  view: View;
   search: string;
   density: FileTreeDensityKeyword;
   workspace: WorkspaceState;
   navigate: Navigate;
 }) {
   const [open, setOpen] = useState(false);
+  const { entry } = view;
   const included = !!entry.selected;
-  const total = stats(entry.data?.files || []);
+  const total = stats(view.files);
+  const loaded = entry.data?.files.length || 0;
   return (
     <Collapsible.Root
       className={`sidebar-repo ${included ? "" : "is-excluded"}`}
+      data-nested={entry.repo.parentName || undefined}
       open={included && open}
       onOpenChange={setOpen}
     >
@@ -135,29 +198,46 @@ function RepoRow({
             title={entry.repo.path}
           >
             <CaretRightIcon className="disclosure" />
-            <span className="sidebar-repo-name">{entry.repo.name}</span>
-            {entry.repo.worktree && (
-              <span className="worktree-label">worktree</span>
-            )}
+            <span className="sidebar-repo-name">{repoLabel(entry.repo)}</span>
+            <span
+              className="repo-branch"
+              title={`Checked out at ${entry.repo.branch}`}
+            >
+              {entry.repo.branch}
+            </span>
             {entry.loading ? (
               <span className="busy-dot" />
             ) : entry.error ? (
               <WarningCircleIcon aria-label="Could not load changes" />
-            ) : included ? (
-              <span className="diff-stat">
-                <span className="added">
-                  {total.added ? `+${total.added}` : ""}
+            ) : (
+              <>
+                {view.reviewed.size > 0 && (
+                  <span
+                    className="review-count"
+                    title={`${view.reviewed.size} of ${loaded} files reviewed`}
+                  >
+                    <CheckCircleIcon />
+                    {view.reviewed.size}/{loaded}
+                  </span>
+                )}
+                <span className="diff-stat">
+                  <span className="added">
+                    {total.added ? `+${total.added}` : ""}
+                  </span>
+                  <span className="removed">
+                    {total.removed ? `−${total.removed}` : ""}
+                  </span>
                 </span>
-                <span className="removed">
-                  {total.removed ? `−${total.removed}` : ""}
-                </span>
-              </span>
-            ) : null}
+              </>
+            )}
           </Collapsible.Trigger>
         ) : (
-          <span className="sidebar-repo-name" title={entry.repo.path}>
-            {entry.repo.name}
-          </span>
+          <>
+            <span className="sidebar-repo-name" title={entry.repo.path}>
+              {repoLabel(entry.repo)}
+            </span>
+            <span className="repo-branch">{entry.repo.branch}</span>
+          </>
         )}
       </div>
       <Collapsible.Panel className="sidebar-repo-panel">
@@ -181,53 +261,47 @@ function RepoRow({
             <i />
             <i />
           </div>
-        ) : entry.data?.files.length ? (
+        ) : view.files.length ? (
           <ChangedTree
-            key={entry.data.version}
-            entry={entry}
+            key={view.key}
+            view={view}
             search={search}
             density={density}
             navigate={navigate}
           />
         ) : (
-          <p className="repo-note">No changes in this comparison.</p>
+          <p className="repo-note">
+            {view.hidden > 0
+              ? `All ${view.hidden} changed files are hidden by the filter.`
+              : "No changes in this comparison."}
+          </p>
         )}
       </Collapsible.Panel>
     </Collapsible.Root>
   );
 }
 export function Sidebar({
+  views,
   workspace,
   density,
+  filter,
+  setFilter,
   navigate,
+  setAutoRefresh,
+  searchRef,
 }: {
+  views: View[];
   workspace: WorkspaceState;
   density: FileTreeDensityKeyword;
+  filter: Filter;
+  setFilter: (patch: Partial<Filter>) => void;
   navigate: Navigate;
+  setAutoRefresh: (value: boolean) => void;
+  searchRef?: RefObject<HTMLInputElement | null>;
 }) {
-  const [query, setQuery] = useState("");
   const pending = workspace.entries.some((entry) => entry.loading);
-  const needle = query.trim().toLowerCase();
-  // A repository whose own name matches shows all of its files; otherwise the
-  // tree is filtered down to the files that match.
-  const visible = workspace.entries.flatMap((entry) => {
-    if (!needle || entry.repo.name.toLowerCase().includes(needle))
-      return [{ entry, search: "" }];
-    const hit = entry.data?.files.some((file) =>
-      file.name.toLowerCase().includes(needle),
-    );
-    return hit ? [{ entry, search: query }] : [];
-  });
-  const row = ({ entry, search }: (typeof visible)[number]) => (
-    <RepoRow
-      key={entry.repo.path}
-      entry={entry}
-      search={search}
-      density={density}
-      workspace={workspace}
-      navigate={navigate}
-    />
-  );
+  const listed = views.filter((view) => view.listed);
+  const matching = listed.filter((view) => !view.entry.selected);
   return (
     <aside className="sidebar" aria-label="Workspace navigation">
       <div className="sidebar-top">
@@ -253,12 +327,48 @@ export function Sidebar({
       <div className="sidebar-search search-field">
         <MagnifyingGlassIcon />
         <Input
+          ref={searchRef}
           aria-label="Filter repositories and changed files"
           placeholder="Find a repo or loaded file…"
-          value={query}
-          onValueChange={setQuery}
+          value={filter.query}
+          onValueChange={(query) => setFilter({ query })}
         />
+        {!!filter.query && (
+          <Button
+            className="icon-button clear-search"
+            aria-label="Clear the search"
+            onClick={() => setFilter({ query: "" })}
+          >
+            <XIcon />
+          </Button>
+        )}
       </div>
+      <div className="bulk-actions">
+        <Button
+          className="text-button"
+          disabled={!matching.length}
+          onClick={() =>
+            matching.forEach((view) => workspace.select(view.entry, true))
+          }
+        >
+          <ListChecksIcon />
+          {filter.query.trim() ? "Select matching" : "Select all"}
+          <span>{matching.length}</span>
+        </Button>
+        <div className="push" />
+        <Button
+          className="text-button"
+          disabled={!workspace.selected.length}
+          onClick={() =>
+            workspace.selected.forEach((entry) =>
+              workspace.select(entry, false),
+            )
+          }
+        >
+          Clear selection
+        </Button>
+      </div>
+      <WatchStatus watch={workspace.watch} onToggle={setAutoRefresh} />
       <nav
         className="repository-list"
         aria-label="Repositories and changed files"
@@ -271,11 +381,20 @@ export function Sidebar({
             <span>Discovering repositories…</span>
           </div>
         ) : (
-          visible.map(row)
+          listed.map((view) => (
+            <RepoRow
+              key={view.entry.repo.path}
+              view={view}
+              search={view.named ? "" : filter.query}
+              density={density}
+              workspace={workspace}
+              navigate={navigate}
+            />
+          ))
         )}
-        {!workspace.scanning && !visible.length && (
+        {!workspace.scanning && !listed.length && (
           <p className="repo-note">
-            {query
+            {filter.query
               ? "No matching repositories or files."
               : "This folder has no Git repositories or worktrees inside it."}
           </p>

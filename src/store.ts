@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, post } from "./api";
+import type { EditorName } from "./editor";
 
 export type Settings = {
   theme: "system" | "light" | "dark";
   layout: "unified" | "split";
   wrap: boolean;
+  autoRefresh: boolean;
   wordDiff: "word-alt" | "word" | "char" | "none";
   expansionLines: number;
   density: "compact" | "default" | "relaxed";
+  editor: EditorName;
   sidebarWidth: number;
   scanDepth: number;
   scanBudget: number;
@@ -17,10 +20,12 @@ export type RepoSettings = {
   base?: string;
   target?: string;
   selected?: boolean;
+  reviewed?: Record<string, string>;
 };
 export type Tab = {
   id: string;
   root: string;
+  name?: string;
   repos: Record<string, RepoSettings>;
 };
 export type TabPatch = {
@@ -42,6 +47,8 @@ type Command =
   | { op: "close"; id: string }
   | { op: "reopen" }
   | { op: "activate"; id: string }
+  | { op: "rename"; id: string; name: string }
+  | { op: "move"; id: string; index: number }
   | ({ op: "tab"; id: string } & TabPatch);
 
 const separator = /[\\/]+/;
@@ -49,6 +56,7 @@ function segments(root: string) {
   return root.split(separator).filter(Boolean);
 }
 export function tabName(tab: Tab, all: Tab[]) {
+  if (tab.name) return tab.name;
   const parts = segments(tab.root);
   const name = parts.at(-1) || tab.root;
   const collides = all.some(
@@ -210,6 +218,36 @@ export function useStore() {
     () => void run({ op: "reopen" }).catch(() => {}),
     [run],
   );
+  const rename = useCallback(
+    (id: string, name: string) => {
+      setState(
+        (previous) =>
+          previous && {
+            ...previous,
+            tabs: previous.tabs.map((tab) =>
+              tab.id === id ? { ...tab, name: name || undefined } : tab,
+            ),
+          },
+      );
+      void send({ op: "rename", id, name }).catch(() => {});
+    },
+    [send],
+  );
+  const move = useCallback(
+    (id: string, index: number) => {
+      setState((previous) => {
+        if (!previous) return previous;
+        const from = previous.tabs.findIndex((tab) => tab.id === id);
+        const to = Math.min(previous.tabs.length - 1, Math.max(0, index));
+        if (from < 0 || to === from) return previous;
+        const tabs = [...previous.tabs];
+        tabs.splice(to, 0, ...tabs.splice(from, 1));
+        return { ...previous, tabs };
+      });
+      void send({ op: "move", id, index }).catch(() => {});
+    },
+    [send],
+  );
 
   return {
     settings: state?.settings,
@@ -225,6 +263,8 @@ export function useStore() {
     close,
     duplicate,
     reopen,
+    rename,
+    move,
     saveTab,
     setSettings,
     resetSettings: () => void send({ op: "reset-settings" }).catch(() => {}),

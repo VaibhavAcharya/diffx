@@ -36,3 +36,24 @@ test("summaries explain scope and show branch names instead of internal targets"
   );
   expect(reviewBranch("HEAD", "Detached HEAD")).toBe("Detached checkout");
 });
+
+test("staged and unstaged review have their own scopes and no base branch", () => {
+  expect(comparisonScope("@staged").value).toBe("staged");
+  expect(comparisonScope("@unstaged").value).toBe("unstaged");
+  expect(comparisonScope("@staged").base).toBe(false);
+  expect(scopeTarget("staged", "origin/release")).toBe("@staged");
+  expect(scopeTarget("unstaged", "origin/release")).toBe("@unstaged");
+  expect(scopeTarget("committed", "@staged")).toBe("HEAD");
+  expect(comparisonSummary("@staged", "feature/login")).toBe(
+    "feature/login · Staged only",
+  );
+  expect(comparisonSummary("@unstaged", "feature/login")).toBe(
+    "feature/login · Unstaged only",
+  );
+});
+
+test("a commit or tag can stand in for a review branch", () => {
+  expect(comparisonScope("v1.2.0").value).toBe("committed");
+  expect(reviewBranch("9f1c2ab", "main")).toBe("9f1c2ab");
+  expect(comparisonSummary("v1.2.0", "main")).toBe("v1.2.0 · Committed only");
+});

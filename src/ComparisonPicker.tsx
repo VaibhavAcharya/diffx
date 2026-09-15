@@ -16,7 +16,7 @@ import {
 import type { Entry, useWorkspace } from "./workspace";
 
 function branchGroups(entry: Entry): BranchGroup[] {
-  const { local, remote } = entry.repo.branches;
+  const { local, remote, tags } = entry.repo.branches;
   return [
     {
       value: "Current checkout",
@@ -31,6 +31,10 @@ function branchGroups(entry: Entry): BranchGroup[] {
     {
       value: "Remote",
       items: remote.map((value) => ({ value, label: value })),
+    },
+    {
+      value: "Tags",
+      items: (tags || []).map((value) => ({ value, label: value })),
     },
   ];
 }
@@ -53,17 +57,17 @@ export function ComparisonPicker({
         <GitBranchIcon />
         <span className="comparison-summary">
           <span>
-            {scope.value === "uncommitted"
-              ? "Uncommitted changes"
-              : `${reviewBranch(entry.target, entry.repo.branch)} vs ${reviewBranch(entry.base, entry.repo.branch)}`}
+            {scope.base
+              ? `${reviewBranch(entry.target, entry.repo.branch)} vs ${reviewBranch(entry.base, entry.repo.branch)}`
+              : scope.label}
           </span>
-          {scope.value !== "uncommitted" && (
-            <small>
-              {scope.value === "combined"
-                ? "Includes uncommitted edits"
-                : "Committed only"}
-            </small>
-          )}
+          <small>
+            {scope.value === "combined"
+              ? "Includes uncommitted edits"
+              : scope.value === "committed"
+                ? "Committed only"
+                : reviewBranch(entry.target, entry.repo.branch)}
+          </small>
         </span>
         <CaretDownIcon />
       </Popover.Trigger>
@@ -142,7 +146,7 @@ export function ComparisonPicker({
                 onChange={(target) => workspace.configure(entry, { target })}
               />
             )}
-            {scope.value !== "uncommitted" && (
+            {scope.base && (
               <BranchPicker
                 label="Base branch"
                 value={entry.base}
@@ -156,7 +160,7 @@ export function ComparisonPicker({
                 " Committed changes start where the current branch diverged from the base."}
               {scope.value === "committed" &&
                 " Local edits belong to the currently checked-out branch and are not included."}
-              {local &&
+              {(scope.value === "combined" || scope.value === "uncommitted") &&
                 " Staged and unstaged edits appear as their combined current content."}
             </p>
           </Popover.Popup>

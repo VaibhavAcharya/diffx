@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import { useState, type ReactElement, type ReactNode } from "react";
 import { Button } from "@base-ui/react/button";
 import { Tooltip } from "@base-ui/react/tooltip";
 import { Combobox } from "@base-ui/react/combobox";
@@ -57,12 +57,22 @@ export function BranchPicker({
   groups: BranchGroup[];
   onChange: (value: string) => void;
 }) {
-  const selected = groups
-    .flatMap((group) => group.items)
-    .find((item) => item.value === value);
+  const [typed, setTyped] = useState("");
+  const all = groups.flatMap((group) => group.items);
+  const selected = all.find((item) => item.value === value);
+  // A commit, a tag, or any other revision Git understands can be typed in
+  // even though it is not one of the refs the scan listed.
+  const revision = typed.trim();
+  const custom =
+    revision &&
+    !/\s/.test(revision) &&
+    !all.some((item) => item.value === revision)
+      ? [{ value: "Revision", items: [{ value: revision, label: revision }] }]
+      : [];
   return (
     <Combobox.Root
-      items={groups.filter((group) => group.items.length)}
+      items={[...custom, ...groups.filter((group) => group.items.length)]}
+      onInputValueChange={setTyped}
       value={selected || { value, label: value }}
       onValueChange={(item) => {
         if (item) onChange(item.value);
@@ -85,11 +95,11 @@ export function BranchPicker({
               <MagnifyingGlassIcon />
               <Combobox.Input
                 aria-label={`Search ${label.toLowerCase()}`}
-                placeholder="Find a branch…"
+                placeholder="Find a branch, tag, or commit…"
               />
             </div>
             <Combobox.Empty className="popup-empty">
-              No matching branches.
+              No matching branches or tags.
             </Combobox.Empty>
             <Combobox.List className="option-list">
               {(group: BranchGroup) => (

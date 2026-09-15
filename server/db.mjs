@@ -7,14 +7,18 @@ const directory =
   process.env.POLYDIFF_HOME || path.join(os.homedir(), ".polydiff");
 const file = path.join(directory, "db.json");
 const recentLimit = 10;
+const nameLimit = 64;
+const reviewLimit = 2000;
 
 export const defaults = {
   theme: "system",
   layout: "unified",
   wrap: false,
+  autoRefresh: true,
   wordDiff: "word-alt",
   expansionLines: 20,
   density: "compact",
+  editor: "vscode",
   sidebarWidth: 304,
   scanDepth: 8,
   scanBudget: 10000,
@@ -25,7 +29,17 @@ const choices = {
   layout: ["unified", "split"],
   wordDiff: ["word-alt", "word", "char", "none"],
   density: ["compact", "default", "relaxed"],
+  editor: [
+    "none",
+    "vscode",
+    "cursor",
+    "windsurf",
+    "zed",
+    "jetbrains",
+    "sublime",
+  ],
 };
+const flags = ["wrap", "autoRefresh"];
 const ranges = {
   sidebarWidth: [220, 640],
   expansionLines: [5, 200],
@@ -35,7 +49,7 @@ const ranges = {
 
 function blank() {
   return {
-    version: 5,
+    version: 6,
     revision: 0,
     settings: { ...defaults },
     activeTab: null,
@@ -53,7 +67,8 @@ function cleanSettings(value) {
     if (Number.isFinite(number))
       settings[key] = Math.min(high, Math.max(low, number));
   }
-  if (typeof value.wrap === "boolean") settings.wrap = value.wrap;
+  for (const key of flags)
+    if (typeof value[key] === "boolean") settings[key] = value[key];
   if (Array.isArray(value.ignore))
     settings.ignore = [
       ...new Set(
@@ -85,6 +100,19 @@ function cleanRepos(value, keepSelected = true) {
       clean.target = settings.target;
     if (keepSelected && settings.selected === true)
       clean.selected = settings.selected;
+    // Each reviewed file is stored against the fingerprint of the diff that
+    // was reviewed, so a later edit brings the file back for another look.
+    if (settings.reviewed && typeof settings.reviewed === "object") {
+      const reviewed = {};
+      let count = 0;
+      for (const [name, print] of Object.entries(settings.reviewed)) {
+        if (!name || typeof print !== "string" || !print || print.length > 16)
+          continue;
+        if (++count > reviewLimit) break;
+        reviewed[name] = print;
+      }
+      if (count) clean.reviewed = reviewed;
+    }
     if (Object.keys(clean).length) repos[repo] = clean;
   }
   return repos;
@@ -102,9 +130,14 @@ function cleanTab(value, seen, version) {
     value.repos,
     version >= 4 || version === 1 || value.selection === "custom",
   );
+  const name =
+    typeof value.name === "string"
+      ? value.name.replace(/\s+/g, " ").trim().slice(0, nameLimit)
+      : "";
   return {
     id: value.id,
     root: value.root,
+    ...(name ? { name } : {}),
     repos,
   };
 }
@@ -123,7 +156,7 @@ export function sanitize(value) {
       ? value.revision
       : 0;
   return {
-    version: 5,
+    version: 6,
     revision,
     settings: cleanSettings(
       version === 1 || version === 2
@@ -216,6 +249,33 @@ export function apply(state, command) {
     return state.tabs.some((tab) => tab.id === command.id)
       ? { ...state, activeTab: command.id }
       : state;
+  if (op === "rename") {
+    const name =
+      typeof command.name === "string"
+        ? command.name.replace(/\s+/g, " ").trim().slice(0, nameLimit)
+        : "";
+    return {
+      ...state,
+      tabs: state.tabs.map((tab) =>
+        tab.id === command.id
+          ? { ...tab, ...(name ? { name } : { name: undefined }) }
+          : tab,
+      ),
+    };
+  }
+  if (op === "move") {
+    const from = state.tabs.findIndex((tab) => tab.id === command.id);
+    if (from < 0) return state;
+    const to = Math.min(
+      state.tabs.length - 1,
+      Math.max(0, Math.round(Number(command.index))),
+    );
+    if (!Number.isFinite(to) || to === from) return state;
+    const tabs = [...state.tabs];
+    const [moved] = tabs.splice(from, 1);
+    tabs.splice(to, 0, moved);
+    return { ...state, tabs };
+  }
   if (op === "tab") {
     const current = state.tabs.find((tab) => tab.id === command.id);
     if (!current) return state;

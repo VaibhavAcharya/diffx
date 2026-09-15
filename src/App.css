@@ -151,6 +151,23 @@ input:focus-visible {
   line-height: 28px;
   color: inherit;
 }
+.tab-rename {
+  width: 150px;
+  height: 22px;
+  margin: 0 4px 0 6px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--background);
+  font-size: 12px;
+  outline: none;
+}
+.tab[data-drop="before"] {
+  box-shadow: inset 2px 0 0 var(--foreground);
+}
+.tab[data-drop="after"] {
+  box-shadow: inset -2px 0 0 var(--foreground);
+}
 .tab-close,
 .tab-new {
   display: inline-flex;
@@ -315,6 +332,40 @@ input:focus-visible {
 .text-button > span {
   font-size: 11px;
   color: var(--muted);
+}
+.watch-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: -4px 8px 10px;
+  padding: 0 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.watch-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.watch-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.watch-status[data-state="watching"] .watch-dot,
+.watch-status[data-state="checking"] .watch-dot {
+  background: var(--green);
+}
+.watch-status[data-state="checking"] .watch-dot {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.watch-status[data-state="off"] .watch-dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--muted);
 }
 .repository-list {
   flex: 1;
@@ -499,7 +550,7 @@ input:focus-visible {
   width: 100%;
   min-height: 39px;
   gap: 9px;
-  padding: 9px 12px;
+  padding: 5px 8px 5px 12px;
   text-align: left;
   background: var(--sidebar);
   font-size: 12px;
@@ -507,7 +558,17 @@ input:focus-visible {
 .file-heading:hover {
   background: var(--surface);
 }
-.file-heading > svg:not(.disclosure) {
+.file-toggle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 0;
+  text-align: left;
+  font-size: 12px;
+}
+.file-toggle > svg:not(.disclosure) {
   width: 16px;
   color: var(--muted);
 }
@@ -516,6 +577,99 @@ input:focus-visible {
   font-family: var(--mono);
   font-size: 12px;
   overflow-wrap: anywhere;
+}
+.file-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.review-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.review-toggle svg {
+  width: 15px;
+  height: 15px;
+}
+.review-toggle:hover {
+  background: var(--hover);
+  color: var(--foreground);
+}
+.review-toggle[aria-pressed="true"] {
+  color: var(--green);
+}
+.file-actions {
+  width: 26px;
+  height: 26px;
+}
+.diff-file[data-reviewed] .file-toggle {
+  opacity: 0.6;
+}
+.diff-file[data-reviewed] {
+  border-color: color-mix(in oklab, var(--green) 35%, var(--border));
+}
+.review-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  color: var(--green);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.review-count svg {
+  width: 12px;
+  height: 12px;
+}
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 8px 8px;
+  padding: 0 8px;
+}
+.bulk-actions svg {
+  width: 13px;
+  height: 13px;
+}
+.clear-search {
+  width: 22px;
+  height: 22px;
+  padding: 4px;
+}
+.filter-popup {
+  width: 330px;
+}
+.filter-popup .segmented {
+  flex-wrap: wrap;
+}
+.filter-popup .setting:last-of-type {
+  border-bottom: 1px solid var(--border);
+}
+.filter-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+.icon-button[data-active] {
+  color: var(--foreground);
+  background: var(--hover);
+}
+.select {
+  width: 220px;
+  padding-inline: 8px;
 }
 .file-status {
   color: var(--muted);
@@ -991,6 +1145,24 @@ input:focus-visible {
 .sidebar-repo {
   margin-bottom: 6px;
 }
+.sidebar-repo[data-nested] {
+  margin-left: 12px;
+  border-left: 1px solid var(--border);
+  padding-left: 4px;
+}
+.repo-branch {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 400;
+}
 .sidebar-repo-heading {
   display: flex;
   align-items: center;
@@ -1288,4 +1460,84 @@ input:focus-visible {
 .counter-group input:focus-visible {
   outline: 2px solid var(--muted);
   outline-offset: -2px;
+}
+
+.diff-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--sidebar);
+  color: var(--muted);
+}
+.diff-search > svg {
+  width: 15px;
+}
+.diff-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+}
+.diff-search .text-button {
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 5px;
+}
+.diff-search .text-button[data-pressed] {
+  background: var(--hover);
+  color: var(--foreground);
+}
+.diff-search-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.diff-file[data-cursor] {
+  outline: 2px solid var(--muted);
+  outline-offset: 1px;
+}
+.shortcuts-dialog {
+  width: 460px;
+}
+.shortcut-list {
+  margin: 18px 0 0;
+}
+.shortcut-list > div {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 36px;
+  border-top: 1px solid var(--border);
+}
+.shortcut-list dt {
+  width: 150px;
+  flex-shrink: 0;
+}
+.shortcut-list dd {
+  margin: 0;
+  font-size: 12px;
+}
+.shortcut-list kbd {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--sidebar);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+@media (max-width: 720px) {
+  .diff-search {
+    padding-inline: 8px;
+  }
+  .diff-search .text-button {
+    display: none;
+  }
 }
