@@ -37,7 +37,8 @@ import {
   type Tab,
   type TabPatch,
 } from "./store";
-import { comparisonLabel, stats, useWorkspace, fileId } from "./workspace";
+import { stats, useWorkspace, fileId } from "./workspace";
+import { comparisonSummary, reviewBranch } from "./comparison";
 import "./assets/fonts/fonts.css";
 import "./App.css";
 
@@ -156,8 +157,7 @@ function WorkspaceView({
   const { selected } = workspace;
   const files = selected.flatMap((entry) => entry.data?.files || []);
   const total = stats(files);
-  const pending =
-    workspace.scanning || workspace.entries.some((entry) => entry.loading);
+  const pending = workspace.scanning || selected.some((entry) => entry.loading);
   const allCollapsed =
     files.length > 0 &&
     selected.every((entry) =>
@@ -303,9 +303,7 @@ function WorkspaceView({
           ))}
           {!selected.length &&
             (pending ? (
-              <Loading lines={3}>
-                Finding changes across your workspace…
-              </Loading>
+              <Loading lines={3}>Discovering repositories…</Loading>
             ) : (
               <Empty
                 icon={
@@ -317,12 +315,12 @@ function WorkspaceView({
                 }
                 title={
                   workspace.entries.length
-                    ? "Nothing in this review"
+                    ? "Select repositories to review"
                     : "No repositories here"
                 }
               >
                 {workspace.entries.length
-                  ? "Changed follows the repositories that have changes. Tick one in the sidebar to add it whatever the rule says, or change what it compares against."
+                  ? "Select repositories in the sidebar to load their changes. Each repository keeps its own comparison branches."
                   : "This folder has no Git repositories or worktrees inside it."}
               </Empty>
             ))}
@@ -343,7 +341,9 @@ function WorkspaceView({
                   <span className="worktree-label">worktree</span>
                 )}
                 <span className="divider-comparison">
-                  {entry.base} → {comparisonLabel(entry.target)}
+                  {comparisonSummary(entry.target, entry.repo.branch)}
+                  {entry.target !== "@uncommitted" &&
+                    ` · Compared with ${reviewBranch(entry.base, entry.repo.branch)}`}
                 </span>
                 <span className="divider-line" />
                 {entry.loading && <span role="status">Updating…</span>}
@@ -369,7 +369,9 @@ function WorkspaceView({
                   ))}
                   {!entry.data?.files.length && (
                     <p className="file-note">
-                      No changes against {entry.base}.
+                      {entry.target === "@uncommitted"
+                        ? "No uncommitted changes."
+                        : `No changes compared with ${reviewBranch(entry.base, entry.repo.branch)}.`}
                     </p>
                   )}
                   <div
@@ -452,7 +454,19 @@ function App() {
                 ))}
             {!store.ready && (
               <div className="workspace-view">
-                <Loading lines={2}>Restoring your workspaces…</Loading>
+                {store.error ? (
+                  <p className="notice" role="alert">
+                    {store.error}
+                    <Button
+                      className="text-button"
+                      onClick={() => window.location.reload()}
+                    >
+                      Retry
+                    </Button>
+                  </p>
+                ) : (
+                  <Loading lines={2}>Restoring your workspaces…</Loading>
+                )}
               </div>
             )}
             {store.ready && !store.tabs.length && (

@@ -32,11 +32,10 @@ const ranges = {
   scanDepth: [1, 16],
   scanBudget: [100, 200000],
 };
-const selections = ["changed", "all", "none"];
 
 function blank() {
   return {
-    version: 4,
+    version: 5,
     revision: 0,
     settings: { ...defaults },
     activeTab: null,
@@ -84,7 +83,7 @@ function cleanRepos(value, keepSelected = true) {
       settings.target !== "@working"
     )
       clean.target = settings.target;
-    if (keepSelected && typeof settings.selected === "boolean")
+    if (keepSelected && settings.selected === true)
       clean.selected = settings.selected;
     if (Object.keys(clean).length) repos[repo] = clean;
   }
@@ -97,9 +96,8 @@ function cleanTab(value, seen, version) {
   if (typeof value.root !== "string" || !path.isAbsolute(value.root))
     return null;
   seen.add(value.id);
-  // Before version 4 a tick only counted in the retired custom mode, so a tick
-  // stored under any other mode was inert and must not become an exception.
-  // Version 1 had no mode and read a ticked repository as custom.
+  // Older modes could store inert ticks. Preserve only explicit selections
+  // that counted; automatic selection rules no longer apply.
   const repos = cleanRepos(
     value.repos,
     version >= 4 || version === 1 || value.selection === "custom",
@@ -107,9 +105,6 @@ function cleanTab(value, seen, version) {
   return {
     id: value.id,
     root: value.root,
-    selection: selections.includes(value.selection)
-      ? value.selection
-      : "changed",
     repos,
   };
 }
@@ -128,7 +123,7 @@ export function sanitize(value) {
       ? value.revision
       : 0;
   return {
-    version: 4,
+    version: 5,
     revision,
     settings: cleanSettings(
       version === 1 || version === 2
@@ -184,7 +179,6 @@ export function apply(state, command) {
     const tab = {
       id: nextId(state),
       root: command.root,
-      selection: "changed",
       repos: {},
     };
     return insert(state, tab, state.tabs.length);
@@ -229,9 +223,6 @@ export function apply(state, command) {
     // scan keeps what it was given.
     const tab = {
       ...current,
-      selection: selections.includes(command.selection)
-        ? command.selection
-        : current.selection,
       repos:
         command.repos && typeof command.repos === "object"
           ? cleanRepos({ ...current.repos, ...command.repos })

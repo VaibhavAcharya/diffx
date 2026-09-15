@@ -114,6 +114,24 @@ test("discovers cross-repo worktrees and compares feature changes without changi
       newRef: committed.targetRef,
     });
     assert.equal(committedContext.newFile.contents, "base\n");
+    const uncommitted = await diff(repo, "missing-base", "@uncommitted");
+    assert.equal(
+      uncommitted.mergeBase,
+      (await git(repo, ["rev-parse", "HEAD"])).trim(),
+    );
+    assert.equal(uncommitted.targetRef, "@working");
+    assert.doesNotMatch(uncommitted.patch, /committed.txt|base-only/);
+    assert.match(uncommitted.patch, /\+staged/);
+    assert.match(uncommitted.patch, /\+unstaged/);
+    assert.match(uncommitted.patch, /\+untracked/);
+    const localContext = await fileContents(repo, {
+      name: "tracked.txt",
+      oldRef: uncommitted.mergeBase,
+      newRef: uncommitted.targetRef,
+    });
+    assert.equal(localContext.oldFile.contents, "base\n");
+    assert.equal(localContext.newFile.contents, "staged\nunstaged\n");
+    assert.equal((await diff(tree, "missing-base", "@uncommitted")).patch, "");
     assert.equal(await git(repo, ["status", "--porcelain=v1"]), before);
     assert.equal(
       (await git(repo, ["branch", "--show-current"])).trim(),

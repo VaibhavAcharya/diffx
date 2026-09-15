@@ -101,7 +101,7 @@ test("guards the API behind the session token and the browser's origin", async (
   await t.test("accepts the session token", async () => {
     const { status, text } = await probe(port, "/api/state", { token });
     assert.equal(status, 200);
-    assert.equal(JSON.parse(text).version, 4);
+    assert.equal(JSON.parse(text).version, 5);
   });
   await t.test("refuses a cross-origin request", async () => {
     const { status } = await probe(port, "/api/state", {

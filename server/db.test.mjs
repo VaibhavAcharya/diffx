@@ -14,7 +14,7 @@ test.after(() => rm(home, { recursive: true, force: true }));
 
 test("returns a blank database with default settings", async () => {
   assert.deepEqual(await db.read(), {
-    version: 4,
+    version: 5,
     revision: 0,
     settings: db.defaults,
     activeTab: null,
@@ -27,11 +27,10 @@ test("round trips a tab and stores only settings that differ", async () => {
   const tab = {
     id: "t1",
     root: "/tmp/workspace",
-    selection: "changed",
     repos: { "/tmp/workspace/build": { base: "main", selected: true } },
   };
   await db.write({
-    version: 4,
+    version: 5,
     activeTab: "t1",
     tabs: [tab],
     settings: { wrap: true },
@@ -58,13 +57,11 @@ test("drops malformed tabs, duplicate ids, and relative repository paths", () =>
       null,
     ],
   });
-  assert.deepEqual(state.tabs, [
-    { id: "keep", root: "/tmp/a", selection: "changed", repos: {} },
-  ]);
+  assert.deepEqual(state.tabs, [{ id: "keep", root: "/tmp/a", repos: {} }]);
   assert.equal(state.activeTab, "keep");
 });
 
-test("migrates version 1 ticks into exceptions on the changed rule", () => {
+test("preserves explicit version 1 selections", () => {
   const state = db.sanitize({
     version: 1,
     activeTab: "a",
@@ -73,9 +70,9 @@ test("migrates version 1 ticks into exceptions on the changed rule", () => {
       { id: "b", root: "/tmp/b", repos: { "/tmp/b/one": { base: "main" } } },
     ],
   });
-  assert.equal(state.tabs[0].selection, "changed");
+  assert.equal(state.tabs[0].selection, undefined);
   assert.deepEqual(state.tabs[0].repos, { "/tmp/a/one": { selected: true } });
-  assert.equal(state.tabs[1].selection, "changed");
+  assert.equal(state.tabs[1].selection, undefined);
   assert.deepEqual(state.settings, db.defaults);
 });
 
@@ -98,23 +95,22 @@ test("retires the custom mode and keeps only the ticks that counted", () => {
     },
   ];
   const state = db.sanitize({ version: 3, tabs, recent: [] });
-  assert.equal(state.version, 4);
-  assert.equal(state.tabs[0].selection, "changed");
+  assert.equal(state.version, 5);
+  assert.equal(state.tabs[0].selection, undefined);
   assert.deepEqual(state.tabs[0].repos, {
-    "/tmp/a/one": { selected: false },
     "/tmp/a/two": { base: "main", selected: true },
   });
-  // A tick under all or none never applied, so it must not become an exception.
-  assert.equal(state.tabs[1].selection, "all");
+  // Before version 4, ticks under all or none never applied.
+  assert.equal(state.tabs[1].selection, undefined);
   assert.deepEqual(state.tabs[1].repos, {
     "/tmp/b/one": { target: "release" },
   });
-  // Once migrated, an exception on any rule is real and survives re-sanitizing.
+  // Unticked repositories need no stored selection.
   const again = db.sanitize({
     ...state,
     tabs: [{ ...state.tabs[1], repos: { "/tmp/b/one": { selected: false } } }],
   });
-  assert.deepEqual(again.tabs[0].repos, { "/tmp/b/one": { selected: false } });
+  assert.deepEqual(again.tabs[0].repos, {});
 });
 
 test("discards repository settings that only repeat the defaults", () => {
@@ -154,15 +150,15 @@ test("clamps numeric settings and ignores unusable values", () => {
   assert.deepEqual(settings.ignore, ["target"]);
 });
 
-test("migrates additive exclusions without changing tab selection", () => {
+test("migrates additive exclusions and retires automatic selection", () => {
   const state = db.sanitize({
     version: 2,
     settings: { ignore: ["target", "node_modules"] },
     tabs: [{ id: "a", root: "/tmp/a", selection: "all" }],
   });
-  assert.equal(state.version, 4);
+  assert.equal(state.version, 5);
   assert.deepEqual(state.settings.ignore, [...db.defaults.ignore, "target"]);
-  assert.equal(state.tabs[0].selection, "all");
+  assert.equal(state.tabs[0].selection, undefined);
   const custom = Array.from({ length: 100 }, (_, index) => `cache-${index}`);
   assert.deepEqual(
     db.sanitize({ version: 2, settings: { ignore: custom } }).settings.ignore,
@@ -214,6 +210,8 @@ test("serializes concurrent writes and advances the revision", async () => {
 test("open creates a tab every time unless asked to focus one", () => {
   const first = db.apply(empty, { op: "open", root: "/tmp/workspace" });
   assert.equal(first.tabs.length, 1);
+  assert.deepEqual(first.tabs[0].repos, {});
+  assert.equal(first.tabs[0].selection, undefined);
   assert.equal(first.activeTab, first.tabs[0].id);
   const second = db.apply(first, { op: "open", root: "/tmp/workspace" });
   assert.equal(second.tabs.length, 2);
@@ -236,10 +234,9 @@ test("duplicate copies the settings and lands beside its source", () => {
         {
           id: "a",
           root: "/tmp/a",
-          selection: "all",
           repos: { "/tmp/a/one": { base: "main" } },
         },
-        { id: "b", root: "/tmp/b", selection: "changed", repos: {} },
+        { id: "b", root: "/tmp/b", repos: {} },
       ],
       activeTab: "a",
     },
@@ -249,7 +246,7 @@ test("duplicate copies the settings and lands beside its source", () => {
     state.tabs.map((tab) => tab.root),
     ["/tmp/a", "/tmp/a", "/tmp/b"],
   );
-  assert.equal(state.tabs[1].selection, "all");
+  assert.equal(state.tabs[1].selection, undefined);
   assert.deepEqual(state.tabs[1].repos, { "/tmp/a/one": { base: "main" } });
   assert.equal(state.activeTab, state.tabs[1].id);
 });
@@ -275,7 +272,6 @@ test("a tab command merges repositories instead of replacing them", () => {
       {
         id: "a",
         root: "/tmp/a",
-        selection: "changed",
         repos: {
           "/tmp/a/one": { base: "main" },
           "/tmp/a/two": { target: "release" },
@@ -291,23 +287,65 @@ test("a tab command merges repositories instead of replacing them", () => {
   });
   assert.deepEqual(state.tabs[0].repos, {
     "/tmp/a/one": { base: "main" },
-    "/tmp/a/two": { selected: false },
   });
-  assert.equal(state.tabs[0].selection, "all");
-  // The retired custom mode is not a rule any more, so it leaves the tab alone.
-  assert.equal(
-    db.apply(state, { op: "tab", id: "a", selection: "custom" }).tabs[0]
-      .selection,
-    "all",
-  );
+  assert.equal(state.tabs[0].selection, undefined);
   const cleared = db.apply(state, {
     op: "tab",
     id: "a",
     repos: { "/tmp/a/one": {} },
   });
-  assert.deepEqual(Object.keys(cleared.tabs[0].repos), ["/tmp/a/two"]);
+  assert.deepEqual(cleared.tabs[0].repos, {});
 });
 
 test("rejects an unknown command", () => {
   assert.throws(() => db.apply(empty, { op: "drop" }), /Unknown command/);
+});
+
+test("persists uncommitted scope and retains its hidden base when duplicating and reopening", () => {
+  let state = db.apply(empty, { op: "open", root: "/tmp/local" });
+  state = db.apply(state, {
+    op: "tab",
+    id: state.activeTab,
+    repos: {
+      "/tmp/local/repo": {
+        base: "release",
+        target: "@uncommitted",
+        selected: true,
+      },
+    },
+  });
+  state = db.sanitize(
+    db.apply(state, { op: "duplicate", id: state.activeTab }),
+  );
+  const repos = state.tabs[0].repos;
+  assert.deepEqual(state.tabs[1].repos, repos);
+  state = db.apply(state, { op: "close", id: state.activeTab });
+  state = db.sanitize(db.apply(state, { op: "reopen" }));
+  assert.deepEqual(state.tabs.at(-1).repos, repos);
+});
+
+test("version 4 migration preserves explicit selections in open and closed tabs", () => {
+  const tabs = ["changed", "all", "none"].map((selection) => ({
+    id: selection,
+    root: `/tmp/${selection}`,
+    selection,
+    repos: {
+      [`/tmp/${selection}/one`]: { selected: true, base: "main" },
+      [`/tmp/${selection}/two`]: { selected: false, target: "release" },
+      [`/tmp/${selection}/three`]: { selected: false },
+    },
+  }));
+  const state = db.sanitize({
+    version: 4,
+    tabs: tabs.slice(0, 2),
+    recent: tabs.slice(2),
+  });
+  for (const tab of [...state.tabs, ...state.recent]) {
+    assert.equal(tab.selection, undefined);
+    assert.deepEqual(tab.repos, {
+      [`${tab.root}/one`]: { selected: true, base: "main" },
+      [`${tab.root}/two`]: { target: "release" },
+    });
+  }
+  assert.deepEqual(db.sanitize(state), state);
 });

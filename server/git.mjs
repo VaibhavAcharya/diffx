@@ -181,11 +181,15 @@ export async function diff(repo, base, target) {
         `${ref}^{commit}`,
       ])
     ).trim();
-  const baseHash = await resolve(base);
-  const targetHash = await resolve(target === "@working" ? "HEAD" : target);
-  const mergeBase = (
-    await git(repo, ["merge-base", baseHash, targetHash])
-  ).trim();
+  const local = target === "@working" || target === "@uncommitted";
+  const targetHash = await resolve(local ? "HEAD" : target);
+  // Local-only review starts at the latest commit, independent of the saved base.
+  const mergeBase =
+    target === "@uncommitted"
+      ? targetHash
+      : (
+          await git(repo, ["merge-base", await resolve(base), targetHash])
+        ).trim();
   const args = [
     "diff",
     "--no-ext-diff",
@@ -194,11 +198,11 @@ export async function diff(repo, base, target) {
     "--find-renames",
     mergeBase,
   ];
-  if (target !== "@working") args.push(targetHash);
+  if (!local) args.push(targetHash);
   args.push("--");
   let patch = await git(repo, args);
   const warnings = [];
-  if (target === "@working") {
+  if (local) {
     const untracked = (
       await git(repo, ["ls-files", "--others", "--exclude-standard", "-z"])
     )
@@ -237,7 +241,7 @@ export async function diff(repo, base, target) {
   return {
     patch,
     mergeBase,
-    targetRef: target === "@working" ? "@working" : targetHash,
+    targetRef: local ? "@working" : targetHash,
     warnings,
   };
 }

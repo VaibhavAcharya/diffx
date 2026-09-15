@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { parsePatchFiles, type FileDiffMetadata } from "@pierre/diffs";
 import { api } from "./api";
 import { sortToTreeOrder } from "./order";
-import { exceptionFor, included as isIncluded } from "./selection";
-import type { RepoSettings, Selection, Tab, TabPatch } from "./store";
+import type { RepoSettings, Tab, TabPatch } from "./store";
 
 type Repo = {
   path: string;
@@ -39,9 +38,6 @@ const loading: Result = { loading: true };
 export function fileId(repo: string, name?: string) {
   return `diff-${encodeURIComponent(repo)}${name ? `-${encodeURIComponent(name)}` : ""}`;
 }
-export function comparisonLabel(target: string) {
-  return target === "@working" ? "working tree" : target;
-}
 export function stats(files: FileDiffMetadata[]) {
   return files
     .flatMap((file) => file.hunks)
@@ -61,7 +57,7 @@ function overrides(repo: Repo, settings: RepoSettings) {
     minimal.base = settings.base;
   if (settings.target && settings.target !== "@working")
     minimal.target = settings.target;
-  if (settings.selected !== undefined) minimal.selected = settings.selected;
+  if (settings.selected) minimal.selected = true;
   return minimal;
 }
 
@@ -69,7 +65,6 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
   const [root, setRoot] = useState(tab.root);
   const [repos, setRepos] = useState<Repo[]>([]);
   const [config, setConfig] = useState(tab.repos);
-  const [selection, setMode] = useState(tab.selection);
   const [results, setResults] = useState<Record<string, Result>>({});
   const [scanning, setScanning] = useState(true);
   const [error, setError] = useState("");
@@ -92,16 +87,16 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
           base: settings?.base || repo.base,
           target: settings?.target || "@working",
           selected: settings?.selected,
-          ...(results[repo.path] || loading),
+          ...(results[repo.path] ||
+            (settings?.selected ? loading : { loading: false })),
         };
       }),
     [repos, config, results],
   );
-  const included = useCallback(
-    (entry: Entry) => isIncluded(entry, selection),
-    [selection],
+  const selected = useMemo(
+    () => entries.filter((entry) => entry.selected),
+    [entries],
   );
-  const selected = useMemo(() => entries.filter(included), [entries, included]);
 
   const load = useCallback(
     async (repo: Repo, base: string, target: string, parent?: AbortSignal) => {
@@ -194,6 +189,7 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
               ) {
                 const repo = workspace.repos[index++];
                 const settings = configRef.current[repo.path];
+                if (!settings?.selected) continue;
                 await load(
                   repo,
                   settings?.base || repo.base,
@@ -231,11 +227,11 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
     const stored: Record<string, RepoSettings> = {};
     for (const repo of repos)
       stored[repo.path] = overrides(repo, config[repo.path] || {});
-    const payload = JSON.stringify({ repos: stored, selection });
+    const payload = JSON.stringify({ repos: stored });
     if (payload === saved.current) return;
     saved.current = payload;
-    save({ repos: stored, selection });
-  }, [repos, config, selection, save]);
+    save({ repos: stored });
+  }, [repos, config, save]);
 
   const reload = useCallback(
     (entry: Entry) => load(entry.repo, entry.base, entry.target),
@@ -247,51 +243,38 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
         ...previous,
         [entry.repo.path]: { ...previous[entry.repo.path], ...patch },
       }));
-      void load(
-        entry.repo,
-        patch.base ?? entry.base,
-        patch.target ?? entry.target,
-      );
+      if (entry.selected)
+        void load(
+          entry.repo,
+          patch.base ?? entry.base,
+          patch.target ?? entry.target,
+        );
     },
     [load],
   );
-  // Ticking a repository records an exception to the rule rather than freezing
-  // the rule into a list.
   const select = useCallback(
-    (entry: Entry, value: boolean) => {
-      const selected = exceptionFor(entry, selection, value);
+    (entry: Entry, selected: boolean) => {
       setConfig((previous) => ({
         ...previous,
         [entry.repo.path]: { ...previous[entry.repo.path], selected },
       }));
+      if (selected) void load(entry.repo, entry.base, entry.target);
+      else {
+        requests.current.get(entry.repo.path)?.abort();
+        setResults((previous) => {
+          const next = { ...previous };
+          delete next[entry.repo.path];
+          return next;
+        });
+      }
     },
-    [selection],
-  );
-  const clearExceptions = useCallback(() => {
-    setConfig((previous) =>
-      Object.fromEntries(
-        Object.entries(previous).map(([path, settings]) => [
-          path,
-          { base: settings.base, target: settings.target },
-        ]),
-      ),
-    );
-  }, []);
-  // Choosing a rule clears the exceptions, so None still means none.
-  const setSelection = useCallback(
-    (mode: Selection) => {
-      setMode(mode);
-      clearExceptions();
-    },
-    [clearExceptions],
+    [load],
   );
 
   return {
     root,
     entries,
     selected,
-    included,
-    selection,
     scanning,
     error,
     warnings,
@@ -299,7 +282,5 @@ export function useWorkspace(tab: Tab, save: (patch: TabPatch) => void) {
     reload,
     configure,
     select,
-    setSelection,
-    clearExceptions,
   };
 }

@@ -13,7 +13,6 @@ export type Settings = {
   scanBudget: number;
   ignore: string[];
 };
-export type Selection = "changed" | "all" | "none";
 export type RepoSettings = {
   base?: string;
   target?: string;
@@ -22,12 +21,10 @@ export type RepoSettings = {
 export type Tab = {
   id: string;
   root: string;
-  selection: Selection;
   repos: Record<string, RepoSettings>;
 };
 export type TabPatch = {
   repos?: Record<string, RepoSettings>;
-  selection?: Selection;
 };
 type State = {
   version: number;
@@ -132,8 +129,8 @@ export function useStore() {
     const patches = [...pending.current];
     pending.current.clear();
     for (const [id, patch] of patches)
-      void run({ op: "tab", id, ...patch }).catch(() => {});
-  }, [run]);
+      void send({ op: "tab", id, ...patch }).catch(() => {});
+  }, [send]);
   useEffect(() => () => clearTimeout(timer.current), []);
 
   const saveTab = useCallback(
@@ -196,14 +193,18 @@ export function useStore() {
   }, [run]);
   const close = useCallback(
     (id: string) => {
+      flush();
       setVisited((previous) => previous.filter((value) => value !== id));
       void run({ op: "close", id }).catch(() => {});
     },
-    [run],
+    [run, flush],
   );
   const duplicate = useCallback(
-    (id: string) => void run({ op: "duplicate", id }).catch(() => {}),
-    [run],
+    (id: string) => {
+      flush();
+      void run({ op: "duplicate", id }).catch(() => {});
+    },
+    [run, flush],
   );
   const reopen = useCallback(
     () => void run({ op: "reopen" }).catch(() => {}),
