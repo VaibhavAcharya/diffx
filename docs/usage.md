@@ -104,17 +104,19 @@ Each file's menu copies its path relative to its repository or its full path, an
 
 ## Comparisons
 
-Select and expand a repository to show its comparison button above the file list. Branch comparisons show the review branch versus the base, with “Includes uncommitted edits” or “Committed only” underneath. Local-only review shows “Uncommitted changes.” Unselected and folded repositories hide this control; the main review pane keeps the full comparison summary. Click the button and choose **Changes** first:
+Select and expand a repository to show its comparison button above the file list. Branch comparisons show the review branch versus the base, with “Includes uncommitted edits” or “Committed only” underneath. The local scopes show their own name, such as “Staged only”, with the checked-out branch underneath. Unselected and folded repositories hide this control; the main review pane keeps the full comparison summary. Click the button and choose **Changes** first:
 
 - **Committed + uncommitted** (default) includes committed changes since the current branch diverged from the base, staged and unstaged edits as their combined current content, and untracked files. The review branch is the current checkout; you can choose the base branch.
 - **Committed only** shows committed changes since the review branch diverged from the base. You can choose any local or remote review branch and base branch. Local edits are excluded.
-- **Uncommitted only** compares local files with the latest commit of the current checkout. It includes staged and unstaged edits as their combined current content, and untracked files. Both branch pickers are hidden; the saved base is restored when you switch back to a branch comparison.
+- **Uncommitted only** compares local files with the latest commit of the current checkout. It includes staged and unstaged edits as their combined current content, and untracked files.
 - **Staged only** shows what is in the index, compared with the latest commit. Untracked files are not in it.
 - **Unstaged only** compares the files on disk with the index, so it shows edits you have not staged, plus untracked files.
 
 ![The five comparison scopes, from committed and uncommitted together down to staged and unstaged apart](images/scopes.png)
 
-The review branch picker accepts a tag or a commit as well as a branch: type a revision into its search box and it is offered as an option. Whatever you choose is passed to Git as written, so it has to be a revision the repository already has.
+The three local scopes read the current checkout, so they hide the base picker and show the branch as plain text; the saved base comes back when you switch to a branch comparison.
+
+Both pickers in a branch comparison accept a tag or a commit as well as a branch: type a revision into the search box and it is offered as an option. Whatever you choose is passed to Git as written, so it has to be a revision the repository already has.
 
 Switching from committed review of another branch to a scope containing uncommitted edits switches the review to the current checkout. Switching back to committed review starts with that checkout; choose another review branch if needed. Existing saved comparisons retain their meaning. No checkout, fetch, staging, or file edits are performed.
 
